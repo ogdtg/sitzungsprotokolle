@@ -26,5 +26,6 @@ jobs:
         git config --global --add safe.directory /__w/sitzungsprotokolle/sitzungsprotokolle
         git config --global user.name "GitHub Actions"
         git config --global user.email "username@users.noreply.github.com"
-        git commit -a -m "check for new protocol"
+        git add .
+        git commit -m "check for new protocol"
         git push
