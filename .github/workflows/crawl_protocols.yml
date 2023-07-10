@@ -1,0 +1,30 @@
+name: Crawl protocols 
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 2 * * *'  # Runs every day at 11 AM
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: florenz2/pdf_scrape:latest_
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      #with: 
+        #token: ${{ secrets.PAT }}
+    - name: Execute script 
+      env:
+        PUSHKEY: ${{ secrets.PUSHKEY }}
+      run: |
+        Rscript update.R
+    - name: GIT Commit Build Artifacts (coverage, dist, devdist, docs)
+      # Only run on main branch push (e.g. after pull request merge).
+      run: |
+        git config --global --add safe.directory /__w/sitzungsprotokolle/sitzungsprotokolle
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "username@users.noreply.github.com"
+        git commit -a -m "check for new protocol"
+        git push
