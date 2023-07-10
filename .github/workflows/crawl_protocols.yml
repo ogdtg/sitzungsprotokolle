@@ -19,7 +19,7 @@ jobs:
       env:
         PUSHKEY: ${{ secrets.PUSHKEY }}
       run: |
-        Rscript update.R
+        Rscript run_scrape.R
     - name: GIT Commit Build Artifacts (coverage, dist, devdist, docs)
       # Only run on main branch push (e.g. after pull request merge).
       run: |
