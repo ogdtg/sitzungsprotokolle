@@ -63,5 +63,7 @@ if (current_data$pdf_date > last_update){
   saveRDS(datum,"vars/last_update.rds")
 
 } else{
+  last_run <- Sys.time()
+  saveRDS(last_run,"vars/last_run.rds")
   message("No new data")
 }
