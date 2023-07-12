@@ -1,92 +1,148 @@
-# sitzungsprotokolle
+# Parliament of the Canton Thurgau Protocol Crawler
+
+This GitHub repository contains a set of functions that crawl protocols from the Parliament of the Canton Thurgau in Switzerland and produce a CSV file for publishing as machine-readable open government data (OGD).
+
+## Scheduled Crawl Run
+The `run_scrape.R` script will be executed regularly by using GitHub Actions. In the code, the steps below will be performed:
+
+1. The script begins by loading several R packages: `pdftools`, `dplyr`, `tidyr`, `rvest`, `stringr`, `httr`, and `jsonlite`. These packages provide functions and tools for working with PDFs, manipulating data frames, web scraping, and handling HTTP requests.
+
+2. By calling `eval(parse("R/extract_functions.R", encoding="UTF-8"))` the necessary functions are loaded.
+
+3. The code checks if two files exist: "vars/last_update.rds" (date of the last protocol scraped) and "vars/last_id.rds" (number of the las t protocol).  If the files exist, the code reads the stored values into the variables `last_update` and `last_id`, respectively. If the files don't exist, it sets `last_update` to a date of "1990-01-01".
+
+4. The code calls the `get_current_data()` function, which scrapes the website of the (parliament)[https://parlament.tg.ch/sitzungen-protokolle/ausfuehrliche-protokolle.html/4483] and retrieves information about PDF links to the newest protocol and their corresponding dates. This function uses the `rvest` package to scrape the website's HTML and extract the relevant data.
+
+5. The code compares the date of the retrieved PDF data with the `last_update` variable. If the date of the current data is greater than `last_update`, it proceeds to process the PDF data.
+
+6. The code calls the `prepare_pdf_data()` function, which takes the PDF link from the current data and prepares the PDF data for further processing. This function downloads the PDF file, extracts the font information, and returns a data frame containing the PDF data with font information.
+
+7. The code calls the `extract_speaker_text()` function, which extracts speaker text from the PDF data. This function processes the PDF data and identifies speaker text based on certain patterns and font styles. It returns a data frame containing the extracted speaker text.
+
+8. The code calls the `prepare_text_data()` function, which takes the extracted speaker text, the PDF date, and other data from the current data, and prepares it for further analysis. This function performs various transformations on the data, such as assigning group IDs, extracting speaker types, cleaning up speaker names, and reformatting the data frame.
+
+9. The code prepares the necessary parameters and headers for making an HTTP POST request to a specified the dataset on data.tg.ch via the PUSH API. It uses the `httr` package to send the POST request and includes the prepared text data in JSON format as the request body.
+
+10. The code saves the updated `last_id` and `last_update` values into files "vars/last_id.rds" and "vars/last_update.rds", respectively, using the `saveRDS()` function. These files will be used as the starting point for the next execution of the code.
+
+11. If the date of the current data is not greater than `last_update`, meaning that there are no new protocls to scrape, the code sets the current time as the last run time and saves it into a file "vars/last_run.rds". It also displays a message indicating that there is no new data.
 
 
+## Functions
 
-## Getting started
+### extract_tagesordnung
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+This function extracts the Tagesordnung (agenda) from a PDF document specified by the `pdf_link` parameter.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
+```R
+extract_tagesordnung <- function(pdf_link)
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/ogdtg/sitzungsprotokolle.git
-git branch -M main
-git push -uf origin main
+
+**Parameters:**
+- `pdf_link` (string): The URL or file path of the PDF document.
+
+**Returns:**
+- A dataframe containing the extracted Tagesordnung.
+
+### prepare_pdf_data
+
+This function prepares the PDF data with font information for further processing.
+
+```R
+prepare_pdf_data <- function(pdf_link)
 ```
 
-## Integrate with your tools
+**Parameters:**
+- `pdf_link` (string): The URL or file path of the PDF document.
 
-- [ ] [Set up project integrations](https://gitlab.com/ogdtg/sitzungsprotokolle/-/settings/integrations)
+**Returns:**
+- A dataframe containing the PDF data with font information.
 
-## Collaborate with your team
+### extract_sitzungsdaten
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+This function extracts Sitzungsdaten (session data) from PDF data.
 
-## Test and Deploy
+```R
+extract_sitzungsdaten <- function(pdf_data)
+```
 
-Use the built-in continuous integration in GitLab.
+**Parameters:**
+- `pdf_data` (dataframe): A dataframe containing the PDF data.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+**Returns:**
+- A dataframe containing the extracted Sitzungsdaten.
 
-***
+### extract_speaker_text
 
-# Editing this README
+This function extracts speaker text from PDF data.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```R
+extract_speaker_text <- function(pdf_data_text)
+```
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+**Parameters:**
+- `pdf_data_text` (dataframe): A dataframe containing the PDF text data.
 
-## Name
-Choose a self-explaining name for your project.
+**Returns:**
+- A dataframe containing the extracted speaker text.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### get_current_data
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+This function retrieves the current data (PDF links and dates) from the Parliament of the Canton Thurgau website.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+```R
+get_current_data <- function()
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+**Returns:**
+- A list containing the PDF links, PDF dates, Tagesordnung links, and Tagesordnung dates.
+
+### scrape_docs
+
+This function scrapes the protocols by iterating over a given range of documents.
+
+```R
+scrape_docs <- function(range)
+```
+
+**Parameters:**
+- `range` (vector): A range of document indices to scrape.
+
+**Returns:**
+- A list containing the scraped Sitzungsdaten and speaker text.
+
+### prepare_text_data
+
+This function prepares the extracted speaker text data for publishing.
+
+```R
+prepare_text_data <- function(pdf_df, date)
+```
+
+**Parameters:**
+- `pdf_df` (dataframe): A dataframe containing the extracted speaker text data.
+- `date` (Date): The date of the protocol.
+
+**Returns:**
+- A dataframe containing the prepared text data.
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+To use these functions, follow these steps:
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+1. Install the required libraries:
+   - pdftools
+   - dplyr
+   - tidyr
+   - rvest
+   - stringr
+   - httr
+   - jsonlite
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+2. Call the `scrape_docs` function to scrape the protocols. You can specify a range of document indices to scrape, e.g., `range = c(1:50)`. This function will return the scraped Sitzungsdaten and speaker text.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+3. Call the `prepare_text_data` function to prepare the extracted speaker text data for publishing. Pass the scraped speaker text data and the corresponding date as parameters.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+4. Save the prepared data as a CSV file or publish it as machine-readable OGD.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Please note that the `scrape_docs` function relies on the availability of PDF links and dates on the Parliament of the Canton Thurgau website. If there are no new documents available, the function will not return any data.
