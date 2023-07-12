@@ -97,19 +97,6 @@ get_current_data <- function()
 **Returns:**
 - A list containing the PDF links, PDF dates, Tagesordnung links, and Tagesordnung dates.
 
-### scrape_docs
-
-This function scrapes the protocols by iterating over a given range of documents.
-
-```R
-scrape_docs <- function(range)
-```
-
-**Parameters:**
-- `range` (vector): A range of document indices to scrape.
-
-**Returns:**
-- A list containing the scraped Sitzungsdaten and speaker text.
 
 ### prepare_text_data
 
@@ -126,23 +113,3 @@ prepare_text_data <- function(pdf_df, date)
 **Returns:**
 - A dataframe containing the prepared text data.
 
-## Usage
-
-To use these functions, follow these steps:
-
-1. Install the required libraries:
-   - pdftools
-   - dplyr
-   - tidyr
-   - rvest
-   - stringr
-   - httr
-   - jsonlite
-
-2. Call the `scrape_docs` function to scrape the protocols. You can specify a range of document indices to scrape, e.g., `range = c(1:50)`. This function will return the scraped Sitzungsdaten and speaker text.
-
-3. Call the `prepare_text_data` function to prepare the extracted speaker text data for publishing. Pass the scraped speaker text data and the corresponding date as parameters.
-
-4. Save the prepared data as a CSV file or publish it as machine-readable OGD.
-
-Please note that the `scrape_docs` function relies on the availability of PDF links and dates on the Parliament of the Canton Thurgau website. If there are no new documents available, the function will not return any data.
