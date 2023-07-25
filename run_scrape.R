@@ -58,6 +58,7 @@ if (current_data$pdf_date > last_update){
     body = jsonlite::toJSON(pdf_df_final),
     httr::add_headers("Content-Type" = "application/json")
   )
+  message(paste0("Data pushed with status code ", response$status_code))
 
   saveRDS(gr,"vars/last_id.rds")
   saveRDS(datum,"vars/last_update.rds")
