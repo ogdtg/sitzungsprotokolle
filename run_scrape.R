@@ -30,11 +30,11 @@ if (current_data$pdf_date > last_update){
   gr <- last_id + 1
   datum <- current_data$pdf_date
   part_id <- case_when(
-    str_length(gr)==5 ~ paste0(lubridate::year(datum),gr),
-    str_length(gr)==4 ~ paste0(lubridate::year(datum),"0",gr),
-    str_length(gr)==3 ~ paste0(lubridate::year(datum),"00",gr),
-    str_length(gr)==2 ~ paste0(lubridate::year(datum),"000",gr),
-    str_length(gr)==1 ~ paste0(lubridate::year(datum),"0000",gr),
+    str_length(gr)==5 ~ paste0(gr),
+    str_length(gr)==4 ~ paste0("0",gr),
+    str_length(gr)==3 ~ paste0("00",gr),
+    str_length(gr)==2 ~ paste0("000",gr),
+    str_length(gr)==1 ~ paste0("0000",gr),
     TRUE ~ paste0(lubridate::year(datum),gr)
   )
 
@@ -48,7 +48,7 @@ if (current_data$pdf_date > last_update){
     ))
 
   # Define the URL and parameters
-  url <- "https://data.tg.ch/api/push/1.0/sk-gr-1/echtzeit0/push/"
+  url <- "https://data.tg.ch/api/push/1.0/sk-gr-1/echtzeit/push/"
 
 
   # Send the POST request

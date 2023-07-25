@@ -500,18 +500,31 @@ extract_speaker_text <- function(pdf_data_text){
       is.na(party_name) ~ str_remove(full_text,"^.+?: "),
       TRUE ~ full_text)
       ) %>%
-    mutate(full_text = str_remove_all(full_text,"Diskussion - nicht weiter benützt.\n"),
+    mutate(
+      # full_text = str_remove_all(full_text,"\nDiskussion . nicht weiter benützt"),
+           # full_text = str_remove_all(full_text,"\nEintreten war unbestritten"),
+           full_text = str_remove_all(full_text,paste0("\nDiskussion.+?",intToUtf8(8211)," (nicht weiter benützt\\.)|(nicht benützt\\.)")),
+           full_text = str_remove_all(full_text,"\nEintreten war unbestritten"),
+           full_text = str_remove_all(full_text,"\nEintreten ist unbestritten und somit beschlossen.\n"),
+           full_text = str_remove_all(full_text,"\nEintreten ist gemäss .+?beschlossen\n"),
+           full_text = str_remove_all(full_text,"Stillschweigend genehmigt\\."),
+           full_text = str_remove_all(full_text,"\\.\nEnde der Sitzung:[\\S\\s]+?$"),
            full_text = str_remove_all(full_text,"-\n"),
            full_text = str_replace_all(full_text,"\n", " ") %>% str_trim()) %>%
-    mutate(remove_string = lead(full_speaker),
-           remove_string =  purrr::map_chr(str_split(remove_string, " "), 1),
-           remove_string = paste0("\n",remove_string," "),
+    mutate(remove_string = str_split(str_trim(lead(full_speaker)), " "),
+           remove_string = map_chr(remove_string, ~ifelse(length(.x) > 1, paste(.x[-length(.x)], collapse = " "), .x)),
            full_text = str_remove(full_text,paste0(remove_string,"$")))
 
   return(all_speaker_text)
 }
 
 
+#' Title
+#'
+#' @return
+#' @export
+#'
+#' @examples
 get_current_data <- function(){
   page <- read_html("https://parlament.tg.ch/sitzungen-protokolle/ausfuehrliche-protokolle.html/4483")
 
@@ -545,59 +558,18 @@ get_current_data <- function(){
 
 
 
-scrape_docs <- function(range = c(1:50)){
-  full_speaker_text <- list()
-  sitzungsdaten_full <- list()
-
-  for (j in range) {
-    print(j)
-
-    if (is.na(protocols$pdf_link[j])) {
-      sitzungsdaten_full[[j]] <- NULL
-      full_speaker_text[[j]] <- NULL
-
-    } else {
-      pdf_data_prepared <- tryCatch({
-        prepare_pdf_data(protocols$pdf_link[j])
-      }, error = function(cond){
-        NULL
-      })
-
-      speaker_text_temp <- tryCatch({
-        extract_speaker_text(pdf_data_prepared) %>%
-          select(-c(1:3)) %>%
-          mutate(date = protocols$datum[j])
-      }, error = function(cond){
-        NULL
-      })
-
-      sitzungsdaten_temp <- tryCatch({
-        extract_sitzungsdaten(pdf_data_prepared) %>%
-          mutate(date = protocols$datum[j])
-      }, error = function(cond){
-        NULL
-      })
-
-      full_speaker_text[[j]] <- speaker_text_temp
-      sitzungsdaten_full[[j]] <- sitzungsdaten_temp
-    }
-  }
-
-  sd_df <- lapply(sitzungsdaten_full, function(x) {
-    if (!is.null(x)) {
-      x <- x %>%
-        mutate_all(as.character) %>%
-        select(c(Vorsitz:date))
-      return(x)
-    }
-  }) %>% bind_rows()
-
-  text_df <- full_speaker_text %>% bind_rows()
-
-  return(list(sitzungsdaten = sd_df, text = text_df))
-}
 
 
+
+#' Title
+#'
+#' @param pdf_df 
+#' @param date 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 prepare_text_data <- function(pdf_df, date){
   pdf_df$date <- date
 
@@ -658,4 +630,65 @@ prepare_text_data <- function(pdf_df, date){
     mutate(sprecher_typ = str_replace_all(sprecher_typ,"dentin","dent"))
 
   return(pdf_df)
+}
+
+
+
+#' Title
+#'
+#' @param range 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+scrape_docs <- function(range = c(1:50)){
+  full_speaker_text <- list()
+  sitzungsdaten_full <- list()
+  
+  for (j in range) {
+    print(j)
+    
+    if (is.na(protocols$pdf_link[j])) {
+      sitzungsdaten_full[[j]] <- NULL
+      full_speaker_text[[j]] <- NULL
+      
+    } else {
+      pdf_data_prepared <- tryCatch({
+        prepare_pdf_data(protocols$pdf_link[j])
+      }, error = function(cond){
+        NULL
+      })
+      
+      speaker_text_temp <- tryCatch({
+        temp <- extract_speaker_text(pdf_data_prepared) 
+        prepare_text_data(temp,date = protocols$datum[j])
+      }, error = function(cond){
+        NULL
+      })
+      
+      sitzungsdaten_temp <- tryCatch({
+        extract_sitzungsdaten(pdf_data_prepared) %>%
+          mutate(date = protocols$datum[j])
+      }, error = function(cond){
+        NULL
+      })
+      
+      full_speaker_text[[j]] <- speaker_text_temp
+      sitzungsdaten_full[[j]] <- sitzungsdaten_temp
+    }
+  }
+  
+  sd_df <- lapply(sitzungsdaten_full, function(x) {
+    if (!is.null(x)) {
+      x <- x %>%
+        mutate_all(as.character) %>%
+        select(c(Vorsitz:date))
+      return(x)
+    }
+  }) %>% bind_rows()
+  
+  text_df <- full_speaker_text %>% bind_rows()
+  
+  return(list(sitzungsdaten = sd_df, text = text_df))
 }
