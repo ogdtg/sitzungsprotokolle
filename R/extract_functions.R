@@ -512,7 +512,7 @@ extract_speaker_text <- function(pdf_data_text){
            full_text = str_remove_all(full_text,"-\n"),
            full_text = str_replace_all(full_text,"\n", " ") %>% str_trim()) %>%
     mutate(remove_string = str_split(str_trim(lead(full_speaker)), " "),
-           remove_string = map_chr(remove_string, ~ifelse(length(.x) > 1, paste(.x[-length(.x)], collapse = " "), .x)),
+           remove_string = purrr::map_chr(remove_string, ~ifelse(length(.x) > 1, paste(.x[-length(.x)], collapse = " "), .x)),
            full_text = str_remove(full_text,paste0(remove_string,"$")))
 
   return(all_speaker_text)
