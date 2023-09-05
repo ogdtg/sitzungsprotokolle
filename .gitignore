@@ -1,2 +1,8 @@
 FILES/
 .Rproj.user
+renv/
+renv.lock
+pdf/
+.Rprofile
+*.Rproj
+.Rhistory
