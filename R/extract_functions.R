@@ -524,7 +524,7 @@ get_current_data <- function(){
 
 
   pdf_link <- urls[stringr::str_detect(urls,"[P|p]rotokoll")]
-  pdf_date <- str_extract(pdf_link,"\\d+\\.\\d+\\.\\d+|\\d+\\-\\d+\\-\\d+") %>% lubridate::dmy()
+  pdf_date <- str_extract(pdf_link,"\\d+\\.\\d+\\.\\d{2,4}|\\d+\\-\\d+\\-\\d{2,4}") %>% lubridate::dmy()
 
   page <- read_html("https://parlament.tg.ch/sitzungen-protokolle/tagesordnungen.html/4481")
 
