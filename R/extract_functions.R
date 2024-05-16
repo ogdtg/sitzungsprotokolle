@@ -525,7 +525,12 @@ get_current_data <- function(){
 
   pdf_link <- urls[stringr::str_detect(urls,"[P|p]rotokoll")]
   pdf_date <- str_extract(pdf_link,"\\d+\\.\\d+\\.\\d{2,4}|\\d+\\-\\d+\\-\\d{2,4}") %>% lubridate::dmy()
-
+  
+  if (is.na(pdf_date)){
+    pdf_date <- str_extract(pdf_link,"(?<!fp=)\\d{6}(?!/).|(?<!fp=)\\d{8}(?!/).") %>% lubridate::ymd()
+    
+  }
+  
   page <- read_html("https://parlament.tg.ch/sitzungen-protokolle/tagesordnungen.html/4481")
 
   tagesordnung_link <- page %>%
@@ -536,6 +541,11 @@ get_current_data <- function(){
 
   to_date <- str_replace_all(tagesordnung_link,"%20"," ") %>% str_extract("\\d+\\.\\d+\\.\\d+|\\d+\\-\\d+\\-\\d+") %>% lubridate::dmy()
 
+  if (is.na(to_date)){
+    to_date <- str_replace_all(tagesordnung_link,"%20"," ") %>% str_extract("\\d+\\.\\d+\\.\\d+|\\d+\\-\\d+\\-\\d+") %>% lubridate::ymd()
+    
+  }
+  
   result <- list(pdf_link = pdf_link,
                  pdf_date = pdf_date,
                  tagesordnung_link = tagesordnung_link,
@@ -543,6 +553,30 @@ get_current_data <- function(){
   return(result)
 }
 
+
+get_data_by_url <- function(pdf_link,tagesordnung_link){
+
+  pdf_date <- str_extract(pdf_link,"\\d+\\.\\d+\\.\\d{2,4}|\\d+\\-\\d+\\-\\d{2,4}") %>% lubridate::dmy()
+  
+  if (is.na(pdf_date)){
+    pdf_date <- str_extract(pdf_link,"(?<!fp=)\\d{6}(?!/).|(?<!fp=)\\d{8}(?!/).") %>% lubridate::ymd()
+    
+  }
+  
+  to_date <- str_replace_all(tagesordnung_link,"%20"," ") %>% str_extract("\\d+\\.\\d+\\.\\d+|\\d+\\-\\d+\\-\\d+") %>% lubridate::dmy()
+  
+  if (is.na(to_date)){
+    to_date <- str_replace_all(tagesordnung_link,"%20"," ") %>% str_extract("\\d+\\.\\d+\\.\\d+|\\d+\\-\\d+\\-\\d+") %>% lubridate::ymd()
+    
+  }
+  
+  
+  result <- list(pdf_link = pdf_link,
+                 pdf_date = pdf_date,
+                 tagesordnung_link = tagesordnung_link,
+                 to_date = to_date)
+  return(result)
+}
 
 
 scrape_docs <- function(range = c(1:50)){
