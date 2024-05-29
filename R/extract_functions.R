@@ -5,6 +5,7 @@ library(dplyr)
 library(tidyr)
 library(rvest)
 library(stringr)
+library(lubridate)
 
 #' extract_tagesordnung
 #'
