@@ -33,8 +33,13 @@ if (file.exists("vars/last_update.rds")){
 }
 
 
-current_data <- get_current_data()
-
+current_data <- tryCatch({
+  # Attempt to get the current data
+  get_current_data()
+}, error = function(e) {
+  # If an error occurs, print the error message and set current_data to NULL
+  list(pdf_date = last_update-1)
+})
 
 # 
 # current_data <- get_data_by_url(pdf_link = "https://parlament.tg.ch/public/upload/assets/156926/240228_Ausfuehrliches-Protokoll.pdf?fp=1710943302687",
