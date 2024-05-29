@@ -16,13 +16,25 @@ eval(parse("R/extract_functions.R", encoding="UTF-8"))
 download_mitglieder_pdf()
 
 # Dataset
-mitglieder <- create_mitglieder_df("mitglieder.pdf")
+mitglieder_list <- create_mitglieder_df("mitglieder.pdf")
+
+# Crawl Page
+scrape_mg <- crawl_mitglieder_page()
+
+mitglieder <- mitglieder_list$data %>% 
+  mutate(fullname = paste0(Vorname," ",Name)) %>% 
+  mutate(fullname = str_replace_all(fullname,intToUtf8(8217),intToUtf8(39))) %>% 
+  left_join(scrape_mg, by = c("fullname"="name")) %>% 
+  select(-fullname) %>% 
+  mutate(datenstand = mitglieder_list$stand)
+
+names(mitglieder) <- tolower(names(mitglieder)) %>% str_replace_all("\\.","_")
 
 # Save
-write.table(mitglieder$data, file = "gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
+write.table(mitglieder, file = "gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
             row.names = F, na="",fileEncoding = "utf-8")
 
-
+saveRDS(scrape_mg,"scrape_gr_mg.rds")
 
 
 if (file.exists("vars/last_update.rds")){

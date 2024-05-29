@@ -869,3 +869,35 @@ download_mitglieder_pdf <- function(){
   # Download the PDF file
   response <- GET(pdf_link, write_disk(destfile, overwrite = TRUE))
 }
+
+
+
+#' Scrape the webpage with the Mitglieder and retrieve name, party and image link
+#'
+#' @param url default is https://parlament.tg.ch/mitglieder/mitgliederliste.html/12745
+#'
+#'
+crawl_mitglieder_page <- function(url = "https://parlament.tg.ch/mitglieder/mitgliederliste.html/12745"){
+  html_mg <- read_html(url)
+  
+  entries <- html_mg %>% 
+    html_elements("li.mod-entry") 
+  
+  text_entries <- entries %>% 
+    html_elements(".col-3")
+  
+  img_entries <- entries %>% 
+    html_elements(".mod-contact-img") %>% 
+    html_attr("src")
+  
+  df <- lapply(entries, function(x){
+    name <- x %>% html_element("h3") %>% html_text()
+    partei <- x %>% html_element(".mod-contact-function") %>% html_text() %>% str_extract("(?<=Partei: )\\w+")
+    
+    data.frame(name=name,partei=partei)
+  }) %>% bind_rows() %>% 
+    mutate(Img = img_entries) %>% 
+    mutate(Name =  str_replace_all(name,intToUtf8(8217),intToUtf8(39)))
+  
+  return(df)
+}
