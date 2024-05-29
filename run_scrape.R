@@ -35,6 +35,21 @@ if (file.exists("vars/last_update.rds")){
 
 current_data <- get_current_data()
 
+
+# 
+# current_data <- get_data_by_url(pdf_link = "https://parlament.tg.ch/public/upload/assets/156926/240228_Ausfuehrliches-Protokoll.pdf?fp=1710943302687",
+#                                 tagesordnung_link = "https://parlament.tg.ch/public/upload/assets/154806/Tagesordnung_Nr_72_vom_2024-02-28.pdf?fp=1712567498190")
+
+
+# current_data <- get_data_by_url(pdf_link = "https://parlament.tg.ch/public/upload/assets/158537/240320_Ausfuehrliches_Protokoll.pdf?fp=1713259270913",
+#                                 tagesordnung_link = "https://parlament.tg.ch/public/upload/assets/156843/Tagesordnung_Nr_73_vom_2024-03-20.pdf?fp=1712567540951")
+
+
+# current_data <- get_data_by_url(pdf_link = "https://parlament.tg.ch/public/upload/assets/159336/240417_Ausfuehrliches_Protokoll.pdf?fp=1715083621043",
+#                                 tagesordnung_link = "https://parlament.tg.ch/public/upload/assets/158452/Tagesordnung_Nr_74_vom_2024-04-17.pdf?fp=1713505901912")
+# 
+
+
 if (current_data$pdf_date > last_update){
   pdf_data_text <- prepare_pdf_data(pdf_link = current_data$pdf_link)
   pdf_df <- extract_speaker_text(pdf_data_text)
