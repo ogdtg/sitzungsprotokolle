@@ -12,6 +12,19 @@ eval(parse("R/extract_functions.R", encoding="UTF-8"))
 
 
 
+# Download
+download_mitglieder_pdf()
+
+# Dataset
+mitglieder <- create_mitglieder_df("mitglieder.pdf")
+
+# Save
+write.table(mitglieder$data, file = "gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
+            row.names = F, na="",fileEncoding = "utf-8")
+
+
+
+
 if (file.exists("vars/last_update.rds")){
   last_update <- readRDS("vars/last_update.rds")
   last_id <- readRDS("vars/last_id.rds")

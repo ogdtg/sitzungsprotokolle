@@ -704,3 +704,133 @@ prepare_pdf_file <- function(filepath){
   return(full_tago_data)
   
 }
+
+
+
+#' Replace German Months with English names to create a proper datetime bject
+#'
+#' @param date_string  
+#'
+#' @return string
+#'
+replace_german_months <- function(date_string) {
+  # Named vector with German month names as names and English month names as values
+  months <- c(
+    Januar = "January", 
+    Februar = "February", 
+    März = "March", 
+    April = "April", 
+    Mai = "May", 
+    Juni = "June", 
+    Juli = "July", 
+    August = "August", 
+    September = "September", 
+    Oktober = "October", 
+    November = "November", 
+    Dezember = "December"
+  )
+  
+  # Replace each German month name with its English counterpart
+  for (month in names(months)) {
+    date_string <- str_replace_all(date_string, month, months[[month]])
+  }
+  
+  return(date_string)
+}
+
+#' Create data.frame of Mitglieder des Grossen Rats from the respective PDF
+#'
+#' @param file 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+create_mitglieder_df <- function(file){
+  
+  info <- pdf_data(file,font_info = T) 
+  
+  stand_index <- which(info[[1]]$text=="Stand")[1]
+  stand <- info[[1]] %>% 
+    slice((stand_index+1):(stand_index+3)) %>% 
+    pull(text) %>% 
+    paste0(collapse = " ") %>% 
+    replace_german_months() %>% 
+    dmy()
+  
+  info_full <- lapply(seq_along(info), function(i){
+    info[[i]] %>% 
+      mutate(page = i)
+  }) %>% bind_rows() %>% 
+    arrange(page,y,x) #correct order of words
+  
+  # Get x positions of the variables
+  positions <- info_full %>% 
+    filter(text %in% c("Name","Vorname","Beruf","Fraktion","GR-Eintritt","E-Mail","Bezirk","Wohnort","Postadresse","Telefon")) %>% 
+    distinct(x,text) %>% 
+    setNames(c("x","category"))
+  
+  
+  # retrieve the name for grouping the variables later on
+  nachname <- info_full %>%  filter(x== 51) %>% 
+    mutate(lead_y = lead(y, default = max(info_full$y)))
+  
+  
+  # Prepare tthe info df
+  info_mod <- info_full %>% 
+    filter(font_size<=7) %>% #remove all titles, pages, etc 
+    left_join(nachname) %>% # join for later grouping and identification of the rows
+    mutate(sep = ifelse(space," ","\n")) %>% # init separateor (whitespace or newline)
+    mutate(lead_y = zoo::na.locf(lead_y)) %>% 
+    left_join(positions, by = "x") %>% # Join categories
+    mutate(category = zoo::na.locf(category))
+  
+  
+  # Create the content from the single words
+  mitglieder_df <- info_mod %>% 
+    mutate(text_mod = paste0(text,sep)) %>% 
+    group_by(lead_y,category,page) %>% 
+    summarise(content = paste0(text_mod,collapse = ""))
+  
+  
+  # Produce  wide data.frame that corresponds to the PDF
+  mitglieder_df_wide <- mitglieder_df %>% 
+    ungroup() %>% 
+    pivot_wider(names_from = category, values_from = content) %>% 
+    select(-lead_y,page) %>% 
+    mutate_all(~str_remove_all(.x,'\\n(?=[a-z])')) %>% 
+    mutate_all(~str_remove_all(.x,'\\n$')) %>% 
+    mutate_all(~str_replace_all(.x,'\\n'," ")) %>% 
+    filter(Name!= "testuser") %>% 
+    select(all_of(positions$category))
+  
+  list(data = mitglieder_df_wide,
+       stand = stand)
+  
+}
+
+
+
+
+#' Download and Save Mitglieder PDF
+#'
+#'
+download_mitglieder_pdf <- function(){
+  url_mitglieder <- "https://parlament.tg.ch/mitglieder/mitgliederliste.html/12745"
+  html_mg <- read_html(url_mitglieder)
+  
+  pdf_link <- html_mg %>% 
+    html_elements("a") %>% 
+    html_attr("href") %>% 
+    str_subset("itglied") %>% 
+    str_subset(".pdf")
+  
+  
+  
+  
+  # Destination file path
+  destfile <- "mitglieder.pdf"
+  
+  # Download the PDF file
+  response <- GET(pdf_link, write_disk(destfile, overwrite = TRUE))
+}
