@@ -10,7 +10,7 @@ library(jsonlite)
 eval(parse("R/extract_functions.R", encoding="UTF-8"))
 
 
-
+## Mitglieder scrape
 
 # Download
 download_mitglieder_pdf()
@@ -36,6 +36,16 @@ write.table(mitglieder, file = "gr_mitglieder.csv", quote = T, sep = ",", dec = 
 
 saveRDS(scrape_mg,"scrape_gr_mg.rds")
 
+
+## GRGEKO Scrape
+# Daten Scrapen
+geschafte_list <- scrape_grgeko(legislatur = 2024)
+
+# Daten aufbereiten für OGD 
+prepare_ogd_vorstoesse(geschafte_list)
+
+
+## SITZUNGSPROTOKOLLE Scrape
 
 if (file.exists("vars/last_update.rds")){
   last_update <- readRDS("vars/last_update.rds")
