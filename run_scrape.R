@@ -10,6 +10,33 @@ library(jsonlite)
 eval(parse("R/extract_functions.R", encoding="UTF-8"))
 
 
+
+
+# Download
+download_mitglieder_pdf()
+
+# Dataset
+mitglieder_list <- create_mitglieder_df("mitglieder.pdf")
+
+# Crawl Page
+scrape_mg <- crawl_mitglieder_page()
+
+mitglieder <- mitglieder_list$data %>% 
+  mutate(fullname = paste0(Vorname," ",Name)) %>% 
+  mutate(fullname = str_replace_all(fullname,intToUtf8(8217),intToUtf8(39))) %>% 
+  left_join(scrape_mg, by = c("fullname"="name")) %>% 
+  select(-fullname) %>% 
+  mutate(datenstand = mitglieder_list$stand)
+
+names(mitglieder) <- tolower(names(mitglieder)) %>% str_replace_all("\\.","_")
+
+# Save
+write.table(mitglieder, file = "gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
+            row.names = F, na="",fileEncoding = "utf-8")
+
+saveRDS(scrape_mg,"scrape_gr_mg.rds")
+
+
 if (file.exists("vars/last_update.rds")){
   last_update <- readRDS("vars/last_update.rds")
   last_id <- readRDS("vars/last_id.rds")
@@ -18,7 +45,27 @@ if (file.exists("vars/last_update.rds")){
 }
 
 
-current_data <- get_current_data()
+current_data <- tryCatch({
+  # Attempt to get the current data
+  get_current_data()
+}, error = function(e) {
+  # If an error occurs, print the error message and set current_data to NULL
+  list(pdf_date = last_update-1)
+})
+
+# 
+# current_data <- get_data_by_url(pdf_link = "https://parlament.tg.ch/public/upload/assets/156926/240228_Ausfuehrliches-Protokoll.pdf?fp=1710943302687",
+#                                 tagesordnung_link = "https://parlament.tg.ch/public/upload/assets/154806/Tagesordnung_Nr_72_vom_2024-02-28.pdf?fp=1712567498190")
+
+
+# current_data <- get_data_by_url(pdf_link = "https://parlament.tg.ch/public/upload/assets/158537/240320_Ausfuehrliches_Protokoll.pdf?fp=1713259270913",
+#                                 tagesordnung_link = "https://parlament.tg.ch/public/upload/assets/156843/Tagesordnung_Nr_73_vom_2024-03-20.pdf?fp=1712567540951")
+
+
+# current_data <- get_data_by_url(pdf_link = "https://parlament.tg.ch/public/upload/assets/159336/240417_Ausfuehrliches_Protokoll.pdf?fp=1715083621043",
+#                                 tagesordnung_link = "https://parlament.tg.ch/public/upload/assets/158452/Tagesordnung_Nr_74_vom_2024-04-17.pdf?fp=1713505901912")
+# 
+
 
 if (current_data$pdf_date > last_update){
   pdf_data_text <- prepare_pdf_data(pdf_link = current_data$pdf_link)
