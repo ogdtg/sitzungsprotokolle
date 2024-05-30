@@ -10,8 +10,6 @@ library(jsonlite)
 eval(parse("R/extract_functions.R", encoding="UTF-8"))
 
 
-
-
 if (file.exists("vars/last_update.rds")){
   last_update <- readRDS("vars/last_update.rds")
   last_id <- readRDS("vars/last_id.rds")
