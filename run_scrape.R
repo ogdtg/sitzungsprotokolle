@@ -86,7 +86,7 @@ saveRDS(mitglieder_changes_total_full,"data/mitglieder_changes_total.rds")
 saveRDS(mitglieder_changes_name_party_fraktion_full,"data/mitglieder_changes_name_party_fraktion.rds")
 
 ## GRGEKO Scrape
-geschafte_list <- scrape_grgeko(legislatur = 2020)
+geschafte_list <- scrape_grgeko(legislatur = 2024)
 
 # Daten aufbereiten für OGD
 geschaefte_prep <- prepare_ogd_vorstoesse(geschafte_list)
