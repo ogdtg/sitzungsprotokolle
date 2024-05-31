@@ -24,25 +24,94 @@ scrape_mg <- crawl_mitglieder_page()
 mitglieder <- mitglieder_list$data %>% 
   mutate(fullname = paste0(Vorname," ",Name)) %>% 
   mutate(fullname = str_replace_all(fullname,intToUtf8(8217),intToUtf8(39))) %>% 
-  left_join(scrape_mg, by = c("fullname"="name")) %>% 
+  left_join(scrape_mg %>% 
+              select(-Name), by = c("fullname"="name")) %>% 
   select(-fullname) %>% 
   mutate(datenstand = mitglieder_list$stand)
 
-names(mitglieder) <- tolower(names(mitglieder)) %>% str_replace_all("\\.","_")
+names(mitglieder) <- tolower(names(mitglieder)) %>% str_replace_all("\\.","_") %>% str_replace_all("-","_")
 
 # Save
-write.table(mitglieder, file = "gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
+write.table(mitglieder, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
             row.names = F, na="",fileEncoding = "utf-8")
 
-saveRDS(scrape_mg,"scrape_gr_mg.rds")
+saveRDS(scrape_mg,"data/scrape_gr_mg.rds")
 
+# Abgleich und Erstellung einer kompletten Mitgliederliste inklusive Änderungen
+mitglieder_old <- readRDS("data/mitglieder_full.rds")
+mitglieder_changes_total_old <- readRDS("data/mitglieder_changes_total.rds")
+mitglieder_changes_name_party_fraktion_old <- readRDS("data/mitglieder_changes_name_party_fraktion.rds")
+
+# Gesamtdaten
+mitglieder_full <- mitglieder %>% 
+  bind_rows(mitglieder_old) %>% 
+  distinct(name,vorname,partei,fraktion,.keep_all = T)
+
+# Generelle Änderungen
+mitglieder_changes_total <- mitglieder %>% 
+  anti_join(mitglieder_old) %>% 
+  mutate(change_date = Sys.Date()) %>% 
+  bind_rows(mitglieder_changes_total_old)
+  
+# Änderung an Namen, Partei oder Fraktion
+mitglieder_changes_name_party_fraktion <- mitglieder %>% 
+  anti_join(mitglieder_old, by = c("name","vorname","partei","fraktion")) %>% 
+  mutate(change_date = Sys.Date()) %>% 
+  bind_rows(mitglieder_changes_name_party_fraktion_old)
+
+
+saveRDS(mitglieder_full,"data/mitglieder_full.rds")
+saveRDS(mitglieder_changes_total,"data/mitglieder_changes_total.rds")
+saveRDS(mitglieder_changes_name_party_fraktion,"data/mitglieder_changes_name_party_fraktion.rds")
 
 ## GRGEKO Scrape
-# Daten Scrapen
-# geschafte_list <- scrape_grgeko(legislatur = 2024)
-# 
-# # Daten aufbereiten für OGD 
-# prepare_ogd_vorstoesse(geschafte_list)
+geschafte_list <- scrape_grgeko(legislatur = 2020)
+
+# Daten aufbereiten für OGD
+geschaefte_prep <- prepare_ogd_vorstoesse(geschafte_list)
+
+
+if (nrow(geschaefte_prep$vorstoesser)>0){
+  
+
+  compare_df_old <- readRDS("data/compare_df.rds")
+  
+  compare_df <- geschaefte_prep$vorstoesser %>% 
+    distinct(nachname,vorname,partei) %>% 
+    anti_join(mitglieder_full %>% 
+                rename(nachname = "name"))
+  
+  compare_df_new <- compare_df %>% 
+    anti_join(compare_df_old) 
+  
+  if (nrow(compare_df_new)>0){
+    compare_df_new <- compare_df_new %>% 
+      left_join(geschaefte_prep$vorstoesser)
+   
+    gnum <- compare_df_new %>% distinct(geschaeftsnummer) %>% pull()
+    
+    if (length(gnum)>3){
+      gnum_string <- "mehreren Geschaeften"
+    } else {
+      gnum_string <- paste0(gnum, collapse = ", ")
+    }
+    
+    issue_body <- compare_df_new %>% 
+      mutate(issue_body = paste0(nachname,", ",vorname," (",geschaeftsnummer,")")) %>% 
+      pull(issue_body) %>% 
+      paste0(.,collapse="\n")
+    
+    create_gh_issue(
+      title = paste0("Unbekannte Sprecher bei ",gnum_string),
+      body = paste0(
+        "Folgende Vorstoesser konnten keinem Eintrag aus der Mitgliederliste zugeordnet werden ",
+        issue_body
+      )
+    ) 
+  }
+    
+}
+
 
 
 ## SITZUNGSPROTOKOLLE Scrape

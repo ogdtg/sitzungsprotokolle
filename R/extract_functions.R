@@ -911,10 +911,10 @@ crawl_mitglieder_page <- function(url = "https://parlament.tg.ch/mitglieder/mitg
 scrape_grgeko <- function(legislatur = 2020) {
   
   # Variablen Laden um Felder zu identifizieren
-  variables <- readRDS("variables.rds")
+  variables <- readRDS("vars/variables.rds")
   
   # Datensatz mit Abkürzungen der einzelnen Geschaefte für späteren Join laden
-  join_ga <- readRDS("kennung.rds")
+  join_ga <- readRDS("vars/kennung.rds")
   
   # Listen initialisieren
   
@@ -1165,12 +1165,14 @@ prepare_ogd_vorstoesse <- function(data_list){
   #          vorstossart_kennung = "kennung")
   
   
-  write.table(vorstoesser, file = "vorstoesser.csv", quote = T, sep = ",", dec = ".", 
+  write.table(vorstoesser, file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
-  write.table(dokumente, file = "dokumente.csv", quote = T, sep = ",", dec = ".", 
+  write.table(dokumente, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
-  write.table(vorstoesse_wide, file = "geschaefte.csv", quote = T, sep = ",", dec = ".", 
+  write.table(vorstoesse_wide, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
+  
+  return(list(vorstoesser=vorstoesser,dokumente=dokumente,vorstoesse = vorstoesse_wide))
   
   
 }
@@ -1357,3 +1359,30 @@ scrape_grgeko_single <- function(legislatur = 2020,grg_num) {
   # Datensätze in Liste gepackt zurückgeben
   return(list(data_df,names_df,documents))
 }
+
+
+
+create_gh_issue <- function(token = Sys.getenv("PAT"), owner ="ogdtg", repo="sitzungsprotokolle", title, body, assignees=list("FLorenz","dkoltg"), milestone=NULL, labels=list("question")) {
+  url <- paste0("https://api.github.com/repos/", owner, "/", repo, "/issues")
+  
+  headers <- c(
+    "Accept" = "application/json",
+    "Authorization" = paste("Bearer", token),
+    "X-GitHub-Api-Version" = "2022-11-28"
+  )
+  
+  body_data <- list(
+    title = title,
+    body = body,
+    assignees = assignees,
+    milestone = milestone,
+    labels = labels
+  )
+  response <- POST(url, body = body_data, encode = "json", add_headers(.headers = headers))
+  res_list <- response$content %>% rawToChar() %>% jsonlite::fromJSON()
+  
+  return(res_list$url)
+}
+
+
+

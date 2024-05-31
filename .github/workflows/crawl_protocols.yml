@@ -18,6 +18,8 @@ jobs:
     - name: Execute script 
       env:
         PUSHKEY: ${{ secrets.PUSHKEY }}
+        PAT: ${{ secrets.PAT }}
+
       run: |
         Rscript run_scrape.R
     - name: GIT Commit Build Artifacts (coverage, dist, devdist, docs)
