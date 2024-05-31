@@ -50,19 +50,40 @@ mitglieder_full <- mitglieder %>%
 # Generelle Änderungen
 mitglieder_changes_total <- mitglieder %>% 
   anti_join(mitglieder_old) %>% 
-  mutate(change_date = Sys.Date()) %>% 
+  mutate(change_date = Sys.Date()) 
+
+mitglieder_changes_total_full <- mitglieder_changes_total %>% 
   bind_rows(mitglieder_changes_total_old)
   
 # Änderung an Namen, Partei oder Fraktion
 mitglieder_changes_name_party_fraktion <- mitglieder %>% 
   anti_join(mitglieder_old, by = c("name","vorname","partei","fraktion")) %>% 
-  mutate(change_date = Sys.Date()) %>% 
+  mutate(change_date = Sys.Date()) 
+
+mitglieder_changes_name_party_fraktion_full <- mitglieder_changes_name_party_fraktion
   bind_rows(mitglieder_changes_name_party_fraktion_old)
 
+if (nrow(mitglieder_changes_name_party_fraktion)>0){
+  issue_body_mg <- mitglieder_changes_name_party_fraktion %>% 
+    mutate(issue_body = paste0(vorname," ",name," (",partei,")", " [",fraktion,"]")) %>% 
+    pull(issue_body) %>% 
+    paste0(.,collapse = "\n")
+  
+  create_gh_issue(
+    title = paste0("Neue/veraenderte Mitglieder ",Sys.Date()),
+    body = paste0(
+      "Folgende Eintragungen sind neu oder wurden veraendert:\n\n",
+      issue_body_mg
+    )
+  )
+  
+  
+}  
+  
 
 saveRDS(mitglieder_full,"data/mitglieder_full.rds")
-saveRDS(mitglieder_changes_total,"data/mitglieder_changes_total.rds")
-saveRDS(mitglieder_changes_name_party_fraktion,"data/mitglieder_changes_name_party_fraktion.rds")
+saveRDS(mitglieder_changes_total_full,"data/mitglieder_changes_total.rds")
+saveRDS(mitglieder_changes_name_party_fraktion_full,"data/mitglieder_changes_name_party_fraktion.rds")
 
 ## GRGEKO Scrape
 geschafte_list <- scrape_grgeko(legislatur = 2020)
@@ -104,7 +125,7 @@ if (nrow(geschaefte_prep$vorstoesser)>0){
     create_gh_issue(
       title = paste0("Unbekannte Sprecher bei ",gnum_string),
       body = paste0(
-        "Folgende Vorstoesser konnten keinem Eintrag aus der Mitgliederliste zugeordnet werden ",
+        "Folgende Vorstoesser konnten keinem Eintrag aus der Mitgliederliste zugeordnet werden:\n\n",
         issue_body
       )
     ) 
