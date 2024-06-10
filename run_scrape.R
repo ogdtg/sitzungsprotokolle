@@ -20,6 +20,7 @@ mitglieder_list <- create_mitglieder_df("mitglieder.pdf")
 
 # Crawl Page
 scrape_mg <- crawl_mitglieder_page()
+  
 
 mitglieder <- mitglieder_list$data %>% 
   mutate(fullname = paste0(Vorname," ",Name)) %>% 
@@ -27,7 +28,9 @@ mitglieder <- mitglieder_list$data %>%
   left_join(scrape_mg %>% 
               select(-Name), by = c("fullname"="name")) %>% 
   select(-fullname) %>% 
-  mutate(datenstand = mitglieder_list$stand)
+  mutate(datenstand = mitglieder_list$stand) %>% 
+  mutate_if(is.character,str_trim) %>% 
+  mutate(partei = str_replace(partei,"SP","SP und Gewerkschaften"))
 
 names(mitglieder) <- tolower(names(mitglieder)) %>% str_replace_all("\\.","_") %>% str_replace_all("-","_")
 
@@ -38,9 +41,9 @@ write.table(mitglieder, file = "data/gr_mitglieder.csv", quote = T, sep = ",", d
 saveRDS(scrape_mg,"data/scrape_gr_mg.rds")
 
 # Abgleich und Erstellung einer kompletten Mitgliederliste inklusive Änderungen
-mitglieder_old <- readRDS("data/mitglieder_full.rds")
-mitglieder_changes_total_old <- readRDS("data/mitglieder_changes_total.rds")
-mitglieder_changes_name_party_fraktion_old <- readRDS("data/mitglieder_changes_name_party_fraktion.rds")
+mitglieder_old <- readRDS("data/mitglieder_full.rds") %>% mutate_if(is.character,str_trim)
+mitglieder_changes_total_old <- readRDS("data/mitglieder_changes_total.rds") %>% mutate_if(is.character,str_trim)
+mitglieder_changes_name_party_fraktion_old <- readRDS("data/mitglieder_changes_name_party_fraktion.rds") %>% mutate_if(is.character,str_trim)
 
 # Gesamtdaten
 mitglieder_full <- mitglieder %>% 
@@ -60,7 +63,7 @@ mitglieder_changes_name_party_fraktion <- mitglieder %>%
   anti_join(mitglieder_old, by = c("name","vorname","partei","fraktion")) %>% 
   mutate(change_date = Sys.Date()) 
 
-mitglieder_changes_name_party_fraktion_full <- mitglieder_changes_name_party_fraktion
+mitglieder_changes_name_party_fraktion_full <- mitglieder_changes_name_party_fraktion %>% 
   bind_rows(mitglieder_changes_name_party_fraktion_old)
 
 if (nrow(mitglieder_changes_name_party_fraktion)>0){
@@ -105,9 +108,15 @@ if (nrow(geschaefte_prep$vorstoesser)>0){
   compare_df_new <- compare_df %>% 
     anti_join(compare_df_old) 
   
+  existing_issues <- readRDS("data/existing_issues.rds")
+  
+  compare_df_new <- compare_df_new %>% 
+    left_join(geschaefte_prep$vorstoesser) %>% 
+    anti_join(existing_issues)
+  
   if (nrow(compare_df_new)>0){
-    compare_df_new <- compare_df_new %>% 
-      left_join(geschaefte_prep$vorstoesser)
+    
+
    
     gnum <- compare_df_new %>% distinct(geschaeftsnummer) %>% pull()
     
@@ -116,6 +125,8 @@ if (nrow(geschaefte_prep$vorstoesser)>0){
     } else {
       gnum_string <- paste0(gnum, collapse = ", ")
     }
+    
+    
     
     issue_body <- compare_df_new %>% 
       mutate(issue_body = paste0(nachname,", ",vorname," (",geschaeftsnummer,")")) %>% 

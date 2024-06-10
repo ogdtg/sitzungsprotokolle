@@ -895,7 +895,7 @@ crawl_mitglieder_page <- function(url = "https://parlament.tg.ch/mitglieder/mitg
   
   df <- lapply(entries, function(x){
     name <- x %>% html_element("h3") %>% html_text()
-    partei <- x %>% html_element(".mod-contact-function") %>% html_text() %>% str_extract("(?<=Partei: )\\w+")
+    partei <- x %>% html_element(".mod-contact-function") %>% html_text() %>% str_extract("(?<=Partei: ).*?(?=,)")
     
     data.frame(name=name,partei=partei)
   }) %>% bind_rows() %>% 
