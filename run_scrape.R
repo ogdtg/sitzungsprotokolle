@@ -178,8 +178,11 @@ current_data <- tryCatch({
 # 
 
 
+pdf_data_text <- prepare_pdf_data(pdf_link = current_data$pdf_link)
+current_data$pdf_date <- get_protocol_date(pdf_data_text)
+
+
 if (current_data$pdf_date > last_update){
-  pdf_data_text <- prepare_pdf_data(pdf_link = current_data$pdf_link)
   pdf_df <- extract_speaker_text(pdf_data_text)
   pdf_df_final <- prepare_text_data(pdf_df, date = current_data$pdf_date)
 

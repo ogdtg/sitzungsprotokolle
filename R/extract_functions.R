@@ -10,6 +10,63 @@ library(rvest)
 library(stringr)
 library(lubridate)
 
+#' Retrieve protocol date from pdf
+#'
+#' @param prepared_data 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+get_protocol_date <- function(prepared_data){
+  pdf_data_text %>% 
+    filter(page==1) %>% 
+    filter(str_detect(font_name,"[B|b]old")) %>% 
+    filter(font_size>12) %>% 
+    group_by(y) %>% 
+    summarise(line = paste0(text, collapse = " ")) %>% 
+    filter(str_detect(line, "\\d{1,2}\\. .+? \\d{4}")) %>% 
+    pull(line) %>% 
+    str_extract("\\d{1,2}\\. .+? \\d{4}") %>% 
+    replace_german_months() %>% 
+    lubridate::dmy()
+}
+
+
+
+#' Function to replace german month names
+#'
+#' @param text 
+#'
+#' @return
+#' @export
+#'
+replace_german_months <- function(text) {
+  # Create a named vector with German month names as keys and English month names as values
+  months_german_to_english <- c(
+    "Januar" = "January",
+    "Februar" = "February",
+    "März" = "March",
+    "April" = "April",
+    "Mai" = "May",
+    "Juni" = "June",
+    "Juli" = "July",
+    "August" = "August",
+    "September" = "September",
+    "Oktober" = "October",
+    "November" = "November",
+    "Dezember" = "December"
+  )
+  
+  # Replace each German month name with its English equivalent
+  for (german_month in names(months_german_to_english)) {
+    english_month <- months_german_to_english[german_month]
+    text <- gsub(german_month, english_month, text, ignore.case = TRUE)
+  }
+  
+  return(text)
+}
+
 #' extract_tagesordnung
 #'
 #' Extracts the Tagesordnung (agenda) from a PDF document specified by the pdf_link parameter
@@ -517,17 +574,16 @@ extract_speaker_text <- function(pdf_data_text){
 
 
 get_current_data <- function(){
-  page <- read_html("https://parlament.tg.ch/sitzungen-protokolle/ausfuehrliche-protokolle.html/4483")
+  page <- read_html("https://parlament.tg.ch/protokolle.html/16497")
 
   urls <- page %>%
-    html_elements("#content") %>%
-    html_elements("div") %>%
-    html_elements("li") %>%
     html_elements("a") %>%
-    html_attr("href")
+    html_attr("href") 
 
 
-  pdf_link <- urls[stringr::str_detect(urls,"[P|p]rotokoll")]
+  pdf_link <- urls %>% 
+    str_subset("\\.pdf") %>% 
+    str_subset("[P|p]rotokoll")
   pdf_date <- str_extract(pdf_link,"\\d+\\.\\d+\\.\\d{2,4}|\\d+\\-\\d+\\-\\d{2,4}") %>% lubridate::dmy()
   
   if (is.na(pdf_date)){
@@ -535,13 +591,12 @@ get_current_data <- function(){
     
   }
   
-  page <- read_html("https://parlament.tg.ch/sitzungen-protokolle/tagesordnungen.html/4481")
+  # page <- read_html("https://parlament.tg.ch/sitzungen-protokolle/tagesordnungen.html/4481")
 
-  tagesordnung_link <- page %>%
-    html_elements("#content") %>%
-    html_elements("p") %>%
-    html_elements("a") %>%
-    html_attr("href")
+  tagesordnung_link <- urls %>%
+    str_subset("\\.pdf") %>% 
+    str_subset("[T|t]agesordnung")
+    
 
   to_date <- str_replace_all(tagesordnung_link,"%20"," ") %>% str_extract("\\d+\\.\\d+\\.\\d+|\\d+\\-\\d+\\-\\d+") %>% lubridate::dmy()
 
