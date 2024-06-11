@@ -207,8 +207,7 @@ if (current_data$pdf_date > last_update){
     ))
 
   # Define the URL and parameters
-  url <- "https://data.tg.ch/api/push/1.0/sk-gr-1/echtzeit/push/"
-
+  url <- "https://data.tg.ch/api/push/1.0/sk-stat-137/echtzeit/push/"
 
   # Send the POST request
   response <- httr::POST(
