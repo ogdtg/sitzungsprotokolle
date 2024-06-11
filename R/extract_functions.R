@@ -894,6 +894,9 @@ create_mitglieder_df <- function(file){
     mutate_all(~str_remove_all(.x,'\\n(?=[a-z])')) %>% 
     mutate_all(~str_remove_all(.x,'\\n$')) %>% 
     mutate_all(~str_replace_all(.x,'\\n'," ")) %>% 
+    mutate_all(~str_replace_all(.x,'Aufre cht',"Aufrecht")) %>% 
+    
+    mutate_all(~str_trim(.x)) %>% 
     filter(Name!= "testuser") %>% 
     select(all_of(positions$category))
   
