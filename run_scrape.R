@@ -204,7 +204,10 @@ if (current_data$pdf_date > last_update){
       str_length(gr_id)==2 ~ paste0(part_id,"00",gr_id),
       str_length(gr_id)==1 ~ paste0(part_id,"000",gr_id),
       TRUE~paste0(part_id,gr_id)
-    ))
+    )) %>% 
+    rename(geschaeftsnummer = "registraturnummer",
+           fraktion = "partei") %>% 
+    mutate(partei = ifelse(is.na(fraktion),"",fraktion))
 
   # Define the URL and parameters
   url <- "https://data.tg.ch/api/push/1.0/sk-stat-137/echtzeit/push/"
