@@ -283,15 +283,15 @@ prepare_ogd_vorstoesse <- function(data_list){
   
   
   final_vorstoesser <- vorstoesser %>% 
-    anti_join(old_vorstoesser, by = "gescheftsnummer") %>% 
+    anti_join(old_vorstoesser, by = "geschaeftsnummer") %>% 
     bind_rows(old_vorstoesser)
   
   final_vorstoesse <- vorstoesse_wide %>% 
-    anti_join(old_vorstoesse, by = "gescheftsnummer") %>% 
+    anti_join(old_vorstoesse, by = "geschaeftsnummer") %>% 
     bind_rows(old_vorstoesse)
   
   final_dokumente <- dokumente %>% 
-    anti_join(old_dokumente, by = "gescheftsnummer") %>% 
+    anti_join(old_dokumente, by = "geschaeftsnummer") %>% 
     bind_rows(old_dokumente)
   
   write.table(final_vorstoesser, file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
