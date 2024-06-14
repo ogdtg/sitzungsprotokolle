@@ -6,3 +6,4 @@ pdf/
 .Rprofile
 *.Rproj
 .Rhistory
+local_data/
