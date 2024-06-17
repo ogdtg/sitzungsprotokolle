@@ -353,7 +353,7 @@ scrape_grgeko_single <- function(legislatur = 2020,grg_num) {
     }
     
     # Wenn mehr als 20 aufeinander folgende Nummern kein Dokument liefern sind alle Dokumente gescraped -> Funktion bricht ab
-    if (nodoc_counter == 40) {
+    if (nodoc_counter == 25) {
       print("keine weiteren Eintragungen")
       break
     }

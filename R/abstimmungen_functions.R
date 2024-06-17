@@ -9,7 +9,7 @@ dmsLoadCategory <- function(category_id, ajax_url="https://parlament.tg.ch/route
   # Define the data to be posted
   data_collapsed <- list(dcategory = category_id)
   data_expanded <- list(dcategory = category_id, isInclude = TRUE)
-  
+  Sys.sleep(2)
   # POST request when collapsed
   response_collapsed <- POST(ajax_url, body = data_collapsed, encode = "form")
   
@@ -109,7 +109,7 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
       bind_rows(cat2)
     
     loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
-    Sys.sleep(2)
+    
     
   }
   
