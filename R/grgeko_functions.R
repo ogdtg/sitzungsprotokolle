@@ -277,20 +277,28 @@ prepare_ogd_vorstoesse <- function(data_list){
   #          vorstossart_bezeichnung = "geschaftsart",
   #          vorstossart_kennung = "kennung")
   
-  old_vorstoesser <- readr::read_csv("data/vorstoesser.csv")
-  old_vorstoesse <- readr::read_csv("data/geschaefte.csv")
-  old_dokumente <- readr::read_csv("data/dokumente.csv")
+  old_vorstoesser <- read.csv("data/vorstoesser.csv") %>% 
+    mutate_all(as.character)
+  
+  old_vorstoesse <- read.csv("data/geschaefte.csv")%>% 
+    mutate_all(as.character)
+  
+  old_dokumente <- read.csv("data/dokumente.csv") %>% 
+    mutate_all(as.character)
   
   
   final_vorstoesser <- vorstoesser %>% 
+    mutate_all(as.character) %>% 
     anti_join(old_vorstoesser, by = "geschaeftsnummer") %>% 
     bind_rows(old_vorstoesser)
   
   final_vorstoesse <- vorstoesse_wide %>% 
+    mutate_all(as.character) %>% 
     anti_join(old_vorstoesse, by = "geschaeftsnummer") %>% 
     bind_rows(old_vorstoesse)
   
   final_dokumente <- dokumente %>% 
+    mutate_all(as.character) %>% 
     anti_join(old_dokumente, by = "geschaeftsnummer") %>% 
     bind_rows(old_dokumente)
   

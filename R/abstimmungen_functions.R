@@ -69,13 +69,16 @@ get_category_id <- function(loaded_cat=NULL, url = "https://parlament.tg.ch/prot
 #'
 #' @examples
 get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunterlagen.html/16604", from_date = NULL){
-  cat1 <- get_category_id(url = url)
+  cat1 <- get_category_id(url = url) %>% 
+    mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim())
   
   loaded_cat_list <- lapply(cat1$id,dmsLoadCategory)
   
   
   cat2 <- lapply(loaded_cat_list,get_category_id) %>% bind_rows() %>% 
-    anti_join(cat1)
+    mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
+    anti_join(cat1) 
+  
   
   loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
   
@@ -87,8 +90,16 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
     loaded_cat_list_final <- loaded_cat_list2
     cat_final <- cat2
     cat2 <- lapply(loaded_cat_list2,get_category_id) %>% bind_rows() %>% 
+      mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
       anti_join(cat1)
     
+    cat2 <- tryCatch({
+      cat2 %>% 
+        mutate(text = as.character(as.Date(text)))
+    }, error = function(cond){
+      cat2 %>% 
+        mutate(text = stringr::str_extract(text,"\\d\\d\\d\\d-\\d\\d-\\d\\d"))
+    })
     
     if (!is.null(from_date)){
       cat2 <- cat2 %>% 
@@ -288,12 +299,13 @@ get_abstimmungen <- function(mitglieder_df){
       )
       message("GitHub Issue created (Abstimmungen)")
     }
+    saveRDS(abstimmungen,"data/abstimmungen_ogd.rds")
+    write.table(abstimmungen, file = "data/abstimmungen_ogd.csv", quote = T, sep = ",", dec = ".", 
+                row.names = F, na="",fileEncoding = "utf-8")
+    
+    saveRDS(max(abstimmungen$datum),"data/last_abstimmung.rds")
   }
   
   
-  saveRDS(abstimmungen,"data/abstimmungen_ogd.rds")
-  write.table(abstimmungen, file = "data/abstimmungen_ogd.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="",fileEncoding = "utf-8")
-  
-  saveRDS(max(abstimmungen$datum),"data/last_abstimmung.rds")
+
 }

@@ -375,12 +375,17 @@ get_current_data <- function(){
   pdf_link <- urls %>% 
     str_subset("\\.pdf") %>% 
     str_subset("[P|p]rotokoll")
-  pdf_date <- str_extract(pdf_link,"\\d+\\.\\d+\\.\\d{2,4}|\\d+\\-\\d+\\-\\d{2,4}") %>% lubridate::dmy()
   
-  if (is.na(pdf_date)){
-    pdf_date <- str_extract(pdf_link,"(?<!fp=)\\d{6}(?!/).|(?<!fp=)\\d{8}(?!/).") %>% lubridate::ymd()
-    
+  if (length(pdf_link)>1){
+    pdf_link <- pdf_link %>% 
+      str_subset("[A|a]usf")
   }
+  # pdf_date <- str_extract(pdf_link,"\\d+\\.\\d+\\.\\d{2,4}|\\d+\\-\\d+\\-\\d{2,4}") %>% lubridate::dmy()
+  # 
+  # if (is.na(pdf_date)){
+  #   pdf_date <- str_extract(pdf_link,"(?<!fp=)\\d{6}(?!/).|(?<!fp=)\\d{8}(?!/).") %>% lubridate::ymd()
+  #   
+  # }
   
   # page <- read_html("https://parlament.tg.ch/sitzungen-protokolle/tagesordnungen.html/4481")
   
@@ -397,7 +402,7 @@ get_current_data <- function(){
   }
   
   result <- list(pdf_link = pdf_link,
-                 pdf_date = pdf_date,
+                 pdf_date = NULL,
                  tagesordnung_link = tagesordnung_link,
                  to_date = to_date)
   return(result)
@@ -608,7 +613,51 @@ prepare_pdf_file <- function(filepath){
 
 
 
+#' Prepare PDF Data
+#'
+#' Prepares the PDF data with font information for further processing.
+#'
+#' @param pdf_link The URL or file path of the PDF document.
+#'
+#' @return The function returns a dataframe containing the PDF data with font information.
 
+#' @export
+#'
+prepare_pdf_data <- function(pdf_link){
+  
+  #Creaet tempfile
+  temp <- tempfile()
+  
+  #downlaod_pdf
+  download.file(pdf_link,
+                destfile = temp,mode = "wb")
+  
+  # Extact pdf data with font info
+  tago_data <- pdftools::pdf_data(temp, font_info = T)
+  # tago_text <- pdftools::pdf_text(temp)
+  #
+  # text_data <- str_split(tago_text,"\\n|\\s|\\r")[[1]]
+  # text_data <- text_data[text_data!=""]
+  # text_df <- data.frame(text = text_data,
+  #                       order = 1:length(text_data))
+  
+  
+  # Add page variable
+  tago_data <- lapply(seq_along(tago_data), function(i){
+    tago_data[[i]]$page <- i
+    return(tago_data[[i]])
+  })
+  
+  
+  # bind rows and add the separator
+  full_tago_data <- tago_data %>%
+    bind_rows() %>%
+    mutate(sep = ifelse(space," ","\n")) %>%
+    mutate(text_string = paste0(text,sep))
+  
+  return(full_tago_data)
+  
+}
 
 
 
