@@ -10,7 +10,7 @@ dmsLoadCategory <- function(category_id, ajax_url="https://parlament.tg.ch/route
   # Define the data to be posted
   data_collapsed <- list(dcategory = category_id)
   data_expanded <- list(dcategory = category_id, isInclude = TRUE)
-  Sys.sleep(4)
+  Sys.sleep(10)
   # POST request when collapsed
   response_collapsed <- POST(ajax_url, body = data_collapsed, encode = "form")
   
@@ -89,9 +89,7 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
   while(nrow(cat2)>0){
     loaded_cat_list_final <- loaded_cat_list2
     cat_final <- cat2
-    print(cat_final)
-    print(loaded_cat_list_final)
-    
+
     cat2 <- lapply(loaded_cat_list2,get_category_id) %>% bind_rows() %>% 
       mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
       anti_join(cat1)
