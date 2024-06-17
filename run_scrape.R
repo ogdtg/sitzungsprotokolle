@@ -23,7 +23,7 @@ current_legislatur <- 2024
 
 mitglieder <- get_mitglieder()
 mitglieder_full <- check_mitglieder(mitglieder)
-# get_vorstossdaten(legislatur=current_legislatur, mitglieder_df=mitglieder_full)
+get_vorstossdaten(legislatur=current_legislatur, mitglieder_df=mitglieder_full)
 get_abstimmungen(mitglieder_df=mitglieder_full)
 get_sitzungsprotokolle()
 # # Download
