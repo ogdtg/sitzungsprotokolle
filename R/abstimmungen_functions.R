@@ -6,6 +6,7 @@
 #' @return xml nodeset of <tr>
 #'
 dmsLoadCategory <- function(category_id, ajax_url="https://parlament.tg.ch/route/cms-index-renderAjaxBlock/blockId/517949/ignore_wrapped_content/1") {
+  print(category_id)
   # Define the data to be posted
   data_collapsed <- list(dcategory = category_id)
   data_expanded <- list(dcategory = category_id, isInclude = TRUE)
