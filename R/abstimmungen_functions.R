@@ -9,7 +9,7 @@ dmsLoadCategory <- function(category_id, ajax_url="https://parlament.tg.ch/route
   # Define the data to be posted
   data_collapsed <- list(dcategory = category_id)
   data_expanded <- list(dcategory = category_id, isInclude = TRUE)
-  Sys.sleep(2)
+  Sys.sleep(4)
   # POST request when collapsed
   response_collapsed <- POST(ajax_url, body = data_collapsed, encode = "form")
   
