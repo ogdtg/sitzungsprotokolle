@@ -89,6 +89,9 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
   while(nrow(cat2)>0){
     loaded_cat_list_final <- loaded_cat_list2
     cat_final <- cat2
+    print(cat_final)
+    print(loaded_cat_list_final)
+    
     cat2 <- lapply(loaded_cat_list2,get_category_id) %>% bind_rows() %>% 
       mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
       anti_join(cat1)
