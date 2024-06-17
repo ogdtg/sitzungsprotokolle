@@ -52,7 +52,7 @@ extract_sitzungsdaten <- function(pdf_data){
 #'
 #' @examples
 get_protocol_date <- function(prepared_data){
-  pdf_data_text %>% 
+  prepared_data %>% 
     filter(page==1) %>% 
     filter(str_detect(font_name,"[B|b]old")) %>% 
     filter(font_size>12) %>% 
@@ -678,7 +678,7 @@ get_sitzungsprotokolle <- function(){
     list(pdf_date = last_update-1)
   })
   
-  
+  print(current_data$pdf_link)
   pdf_data_text <- prepare_pdf_data(pdf_link = current_data$pdf_link)
   current_data$pdf_date <- get_protocol_date(pdf_data_text)
   
