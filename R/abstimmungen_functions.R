@@ -86,7 +86,6 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
     bind_rows(cat2)
   
   while(nrow(cat2)>0){
-    
     loaded_cat_list_final <- loaded_cat_list2
     cat_final <- cat2
     cat2 <- lapply(loaded_cat_list2,get_category_id) %>% bind_rows() %>% 
@@ -110,6 +109,7 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
       bind_rows(cat2)
     
     loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
+    Sys.sleep(2)
     
   }
   
