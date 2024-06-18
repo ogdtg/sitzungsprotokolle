@@ -34,3 +34,16 @@ create_gh_issue <- function(token = Sys.getenv("PAT"), owner ="ogdtg", repo="sit
   
   return(res_list$url)
 }
+
+
+
+repalce_quotes <- function(df){
+  df %>% 
+    mutate_if(is.character,~str_replace_all(.x,'"',"'"))
+}
+
+
+clean_gnum <- function(df){
+  df %>% 
+    
+}

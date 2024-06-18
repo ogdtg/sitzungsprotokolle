@@ -219,23 +219,6 @@ prepare_ogd_vorstoesse <- function(data_list){
     mutate_if(is.character,~str_replace_all(.x,'"',"'"))
   
   
-  
-  
-  # 
-  # column_names_vs <- colnames(vorstoesser)
-  # 
-  # max_digit_vs <- column_names_vs %>% str_extract("\\d+") %>% as.numeric() %>% max(na.rm = T)
-  # 
-  # new_order_vs <- c("nachname","vorname","partei","ort") %>% 
-  #   expand.grid(.,1:max_digit_vs) %>% 
-  #   mutate(name = paste0(Var1,"_",Var2)) %>% 
-  #   pull(name) %>% 
-  #   c("titel", "registraturnummer",.)
-  # 
-  # vorstoesser_wide <- vorstoesser %>% 
-  #   select(all_of(new_order_vs))
-  # 
-  
   # Dokumente
   
   dokumente <- data_list[[3]] %>%
@@ -244,38 +227,6 @@ prepare_ogd_vorstoesse <- function(data_list){
     mutate_if(is.character,~str_replace_all(.x,'"',"'"))
   
   
-  # group_by(titel,registraturnummer) %>% 
-  # mutate(person_id = row_number()) %>%
-  # ungroup() %>% 
-  # tidyr::pivot_wider(
-  #   names_from = person_id,
-  #   values_from = c(doc_title,doc_link),
-  #   names_sep = "_"
-  # ) 
-  # 
-  
-  # column_names_doc <- colnames(vorstoesser)
-  
-  # max_digit_doc <- column_names_doc %>% str_extract("\\d+") %>% as.numeric() %>% max(na.rm = T)
-  # 
-  # new_order_doc <- c("doc_title","doc_link") %>% 
-  #   expand.grid(.,1:max_digit_doc) %>% 
-  #   mutate(name = paste0(Var1,"_",Var2)) %>% 
-  #   pull(name) %>% 
-  #   c("titel", "registraturnummer",.)
-  # 
-  # dokumente_wide <- dokumente %>% 
-  #   select(all_of(new_order_doc))
-  # 
-  # 
-  # full_vs_data <- vorstoesse_wide %>% 
-  #   left_join(vorstoesser_wide, by = c("geschaftstitel"="titel","registraturnummer")) %>% 
-  #   left_join(dokumente_wide, by = c("geschaftstitel"="titel","registraturnummer")) %>% 
-  #   rename(geschaeftsnummer = "registraturnummer",
-  #          grg_nr = "grg_nummer",
-  #          vorstoss_bezeichnung = "geschaftstitel",
-  #          vorstossart_bezeichnung = "geschaftsart",
-  #          vorstossart_kennung = "kennung")
   
   old_vorstoesser <- read.csv("data/vorstoesser.csv") %>% 
     mutate_all(as.character)
@@ -290,17 +241,22 @@ prepare_ogd_vorstoesse <- function(data_list){
   final_vorstoesser <- vorstoesser %>% 
     mutate_all(as.character) %>% 
     anti_join(old_vorstoesser, by = "geschaeftsnummer") %>% 
-    bind_rows(old_vorstoesser)
+    bind_rows(old_vorstoesser) %>% 
+    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
   
   final_vorstoesse <- vorstoesse_wide %>% 
     mutate_all(as.character) %>% 
     anti_join(old_vorstoesse, by = "geschaeftsnummer") %>% 
-    bind_rows(old_vorstoesse)
+    bind_rows(old_vorstoesse) %>% 
+    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
+  
   
   final_dokumente <- dokumente %>% 
     mutate_all(as.character) %>% 
     anti_join(old_dokumente, by = "geschaeftsnummer") %>% 
-    bind_rows(old_dokumente)
+    bind_rows(old_dokumente) %>% 
+    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
+  
   
   write.table(final_vorstoesser, file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
