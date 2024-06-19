@@ -43,7 +43,3 @@ repalce_quotes <- function(df){
 }
 
 
-clean_gnum <- function(df){
-  df %>% 
-    
-}
