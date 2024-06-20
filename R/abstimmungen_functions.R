@@ -80,40 +80,50 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
     mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
     anti_join(cat1) 
   
-  
-  loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
-  
-  cat1 <- cat1 %>% 
-    bind_rows(cat2)
-  
-  while(nrow(cat2)>0){
-    loaded_cat_list_final <- loaded_cat_list2
-    cat_final <- cat2
-
-    cat2 <- lapply(loaded_cat_list2,get_category_id) %>% bind_rows() %>% 
-      mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
-      anti_join(cat1)
+  if (nrow(cat2)==0){
+    loaded_cat_list_final <- loaded_cat_list
+    cat_final <- cat1
     
-    cat2 <- tryCatch({
-      cat2 %>% 
-        mutate(text = as.character(as.Date(text)))
-    }, error = function(cond){
-      cat2 %>% 
-        mutate(text = stringr::str_extract(text,"\\d\\d\\d\\d-\\d\\d-\\d\\d"))
-    })
-    
-    if (!is.null(from_date)){
-      cat2 <- cat2 %>% 
-        filter(as.Date(text)>as.Date(from_date))
-    }
+  } else {
+    loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
     
     cat1 <- cat1 %>% 
       bind_rows(cat2)
     
-    loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
+    loaded_cat_list_final <- loaded_cat_list2
+    cat_final <- cat2
     
-    
+    while(nrow(cat2)>0){
+      loaded_cat_list_final <- loaded_cat_list2
+      cat_final <- cat2
+      
+      cat2 <- lapply(loaded_cat_list2,get_category_id) %>% bind_rows() %>% 
+        mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
+        anti_join(cat1)
+      
+      cat2 <- tryCatch({
+        cat2 %>% 
+          mutate(text = as.character(as.Date(text)))
+      }, error = function(cond){
+        cat2 %>% 
+          mutate(text = stringr::str_extract(text,"\\d\\d\\d\\d-\\d\\d-\\d\\d"))
+      })
+      
+      if (!is.null(from_date)){
+        cat2 <- cat2 %>% 
+          filter(as.Date(text)>as.Date(from_date))
+      }
+      
+      cat1 <- cat1 %>% 
+        bind_rows(cat2)
+      
+      loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
+      
+      
+    }
   }
+  
+  
   
   pdf_df <- lapply(loaded_cat_list_final, function(x){
     url <- x %>% 
