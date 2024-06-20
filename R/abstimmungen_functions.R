@@ -190,6 +190,7 @@ crawl_pdf <- function(url){
 #'
 #' @examples
 prepare_abstimmung_pdf <- function(url){
+  print(url)
   pdf_data_abst <- crawl_pdf(url)
   
   start_index <- which(pdf_data_abst$text=="Abstimmungsprotokoll")[1]
