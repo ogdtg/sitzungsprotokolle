@@ -470,6 +470,7 @@ get_vorstossdaten <- function(legislatur=current_legislatur, mitglieder_df){
     compare_df_old <- readRDS("data/compare_df.rds")
     
     compare_df <- geschaefte_prep$vorstoesser %>% 
+      # filter(!is.na(nachname)) %>% 
       distinct(nachname,vorname,partei) %>% 
       anti_join(mitglieder_df %>% 
                   rename(nachname = "name"))
@@ -510,6 +511,12 @@ get_vorstossdaten <- function(legislatur=current_legislatur, mitglieder_df){
         )
       )
       message("GitHub Issue created (GRGEKO)")
+      compare_df_new %>% 
+        bind_rows(existing_issues) %>% 
+        saveRDS("data/existing_issues.rds")
+      
+      
+      
     }
   }
   message("GRGEKO data crawled and checked")
