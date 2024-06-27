@@ -28,7 +28,7 @@ message("Mitglieder crawled")
 mitglieder_full <- check_mitglieder(mitglieder)
 message("Mitglieder checked")
 
-get_vorstossdaten(legislatur=current_legislatur, mitglieder_df=mitglieder_full)
+geschaefte <- get_vorstossdaten(legislatur=current_legislatur, mitglieder_df=mitglieder_full)
 message("Vorstossdaten crawled")
 
 get_abstimmungen(mitglieder_df=mitglieder_full)
