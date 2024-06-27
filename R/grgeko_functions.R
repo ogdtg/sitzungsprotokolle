@@ -265,6 +265,7 @@ prepare_ogd_vorstoesse <- function(data_list){
   write.table(final_vorstoesse, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
   
+  saveRDS(final_vorstoesse,"data/geschaefte.rds")
   return(list(vorstoesser=vorstoesser,dokumente=dokumente,vorstoesse = vorstoesse_wide))
   
   
@@ -520,4 +521,5 @@ get_vorstossdaten <- function(legislatur=current_legislatur, mitglieder_df){
     }
   }
   message("GRGEKO data crawled and checked")
+  return(geschaefte_prep)
 }

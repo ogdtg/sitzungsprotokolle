@@ -250,7 +250,7 @@ prepare_abstimmung_pdf <- function(url){
 
 
 
-get_abstimmungen <- function(mitglieder_df){
+get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschaefte.rds")){
   pdf_df <- get_pdf_list(from_date = readRDS("data/last_abstimmung.rds"))
   
   pdf_df_abst <- pdf_df %>% 
@@ -266,10 +266,16 @@ get_abstimmungen <- function(mitglieder_df){
              fraktion = str_replace(fraktion,"EDU/AUFTG","EDU/Aufrecht")) %>%
       mutate_if(is.character, ~str_replace_all(.x,intToUtf8(39),intToUtf8(8217)))
     
-    
+    # Join with Geschaefte df
+    abstimmungen_join <- abstimmungen_new %>% 
+      left_join(geschaefte_df %>% 
+                  mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])")) %>% 
+                  select(geschaeftsnummer,geschaftstitel) %>% 
+                  distinct(), by = "geschaeftsnummer") %>% 
+      rename(geschaeftstitel = "geschaftstitel")
     
     # Abgleich mit bereits gespeicherten Abstimmungen
-    abstimmungen <- abstimmungen_new %>% 
+    abstimmungen <- abstimmungen_join %>% 
       anti_join(abstimmungen_old, by = c("datum","geschaeftsnummer","traktandum")) %>% 
       bind_rows(abstimmungen_old) 
     
@@ -312,13 +318,12 @@ get_abstimmungen <- function(mitglieder_df){
       )
       message("GitHub Issue created (Abstimmungen)")
     }
+
+    
     saveRDS(abstimmungen,"data/abstimmungen_ogd.rds")
     write.table(abstimmungen, file = "data/abstimmungen_ogd.csv", quote = T, sep = ",", dec = ".", 
                 row.names = F, na="",fileEncoding = "utf-8")
     
     saveRDS(max(abstimmungen$datum),"data/last_abstimmung.rds")
   }
-  
-  
-
 }
