@@ -685,7 +685,6 @@ get_sitzungsprotokolle <- function(pdf_df){
       pdf_df_final <- prepare_text_data(pdf_df, date = datum)
       
       gr <- last_id + i
-      datum <- current_data$pdf_date
       part_id <- case_when(
         str_length(gr)==5 ~ paste0(gr),
         str_length(gr)==4 ~ paste0("0",gr),
