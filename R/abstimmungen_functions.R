@@ -250,8 +250,8 @@ prepare_abstimmung_pdf <- function(url){
 
 
 
-get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschaefte.rds")){
-  pdf_df <- get_pdf_list(from_date = readRDS("data/last_abstimmung.rds"))
+get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschaefte.rds"),pdf_df){
+  # pdf_df <- get_pdf_list(from_date = readRDS("data/last_abstimmung.rds"))
   
   pdf_df_abst <- pdf_df %>% 
     filter(str_detect(name,"Trakt"))

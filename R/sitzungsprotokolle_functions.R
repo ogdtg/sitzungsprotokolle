@@ -661,73 +661,71 @@ prepare_pdf_data <- function(pdf_link){
 
 
 
-get_sitzungsprotokolle <- function(){
+get_sitzungsprotokolle <- function(pdf_df){
   if (file.exists("vars/last_update.rds")){
     last_update <- readRDS("vars/last_update.rds")
     last_id <- readRDS("vars/last_id.rds")
   } else {
     last_update <- as.Date("1990-01-01")
   }
+
   
   
-  current_data <- tryCatch({
-    # Attempt to get the current data
-    get_current_data()
-  }, error = function(e) {
-    # If an error occurs, print the error message and set current_data to NULL
-    list(pdf_date = last_update-1)
-  })
+  pdf_df_mod <- pdf_df %>% 
+    filter(text > last_update) %>% 
+    filter(str_detect(name,"[A|a]usf"))
   
-  print(current_data$pdf_link)
-  pdf_data_text <- prepare_pdf_data(pdf_link = current_data$pdf_link)
-  current_data$pdf_date <- get_protocol_date(pdf_data_text)
-  
-  
-  if (current_data$pdf_date > last_update){
-    pdf_df <- extract_speaker_text(pdf_data_text)
-    pdf_df_final <- prepare_text_data(pdf_df, date = current_data$pdf_date)
+  if (nrow(pdf_df_mod)>0){
     
-    gr <- last_id + 1
-    datum <- current_data$pdf_date
-    part_id <- case_when(
-      str_length(gr)==5 ~ paste0(gr),
-      str_length(gr)==4 ~ paste0("0",gr),
-      str_length(gr)==3 ~ paste0("00",gr),
-      str_length(gr)==2 ~ paste0("000",gr),
-      str_length(gr)==1 ~ paste0("0000",gr),
-      TRUE ~ paste0(lubridate::year(datum),gr)
-    )
-    
-    pdf_df_final <- pdf_df_final %>%
-      mutate(gr_id = 1:nrow(.)) %>%
-      mutate(rede_id = case_when(
-        str_length(gr_id)==3 ~ paste0(part_id,"0",gr_id),
-        str_length(gr_id)==2 ~ paste0(part_id,"00",gr_id),
-        str_length(gr_id)==1 ~ paste0(part_id,"000",gr_id),
-        TRUE~paste0(part_id,gr_id)
-      )) %>% 
-      rename(geschaeftsnummer = "registraturnummer",
-             fraktion = "partei") %>% 
-      mutate(partei = ifelse(is.na(fraktion),"",fraktion))
-    
-    # Define the URL and parameters
-    url <- "https://data.tg.ch/api/push/1.0/sk-stat-137/echtzeit/push/"
-    
-    # Send the POST request
-    response <- httr::POST(
-      url = url,
-      query = list(pushkey=Sys.getenv("PUSHKEY")),
-      body = jsonlite::toJSON(pdf_df_final),
-      httr::add_headers("Content-Type" = "application/json")
-    )
-    message(paste0("Data pushed with status code ", response$status_code))
+    for (i in  1:nrow(pdf_df_mod)){
+      pdf_data_text <- prepare_pdf_data(pdf_link = pdf_df_mod$pdf[i])
+      datum <- pdf_df_mod$text[i]
+      
+      pdf_df <- extract_speaker_text(pdf_data_text)
+      pdf_df_final <- prepare_text_data(pdf_df, date = datum)
+      
+      gr <- last_id + i
+      datum <- current_data$pdf_date
+      part_id <- case_when(
+        str_length(gr)==5 ~ paste0(gr),
+        str_length(gr)==4 ~ paste0("0",gr),
+        str_length(gr)==3 ~ paste0("00",gr),
+        str_length(gr)==2 ~ paste0("000",gr),
+        str_length(gr)==1 ~ paste0("0000",gr),
+        TRUE ~ paste0(lubridate::year(datum),gr)
+      )
+      
+      pdf_df_final <- pdf_df_final %>%
+        mutate(gr_id = 1:nrow(.)) %>%
+        mutate(rede_id = case_when(
+          str_length(gr_id)==3 ~ paste0(part_id,"0",gr_id),
+          str_length(gr_id)==2 ~ paste0(part_id,"00",gr_id),
+          str_length(gr_id)==1 ~ paste0(part_id,"000",gr_id),
+          TRUE~paste0(part_id,gr_id)
+        )) %>% 
+        rename(geschaeftsnummer = "registraturnummer",
+               fraktion = "partei") %>% 
+        mutate(partei = ifelse(is.na(fraktion),"",fraktion))
+      
+      # Define the URL and parameters
+      url <- "https://data.tg.ch/api/push/1.0/sk-stat-137/echtzeit/push/"
+      
+      # Send the POST request
+      response <- httr::POST(
+        url = url,
+        query = list(pushkey=Sys.getenv("PUSHKEY")),
+        body = jsonlite::toJSON(pdf_df_final),
+        httr::add_headers("Content-Type" = "application/json")
+      )
+      message(paste0("Data pushed with status code ", response$status_code))
+    }
     
     saveRDS(gr,"vars/last_id.rds")
     saveRDS(datum,"vars/last_update.rds")
-    
-  } else{
+  } else {
     last_run <- Sys.time()
     saveRDS(last_run,"vars/last_run.rds")
     message("No new data")
   }
+
 }

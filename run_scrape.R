@@ -31,9 +31,20 @@ message("Mitglieder checked")
 geschaefte <- get_vorstossdaten(legislatur=current_legislatur, mitglieder_df=mitglieder_full)
 message("Vorstossdaten crawled")
 
-get_abstimmungen(mitglieder_df=mitglieder_full)
+
+last_protocol <- readRDS("vars/last_update.rds")
+last_abstimmung <- readRDS("data/last_abstimmung.rds")
+
+pdf_df <- get_pdf_list(from_date = last_protocol)
+
+pdf_df_abst <- pdf_df %>% 
+  filter(text>last_abstimmung)
+
+
+
+get_abstimmungen(mitglieder_df=mitglieder_full, pdf_df = pdf_df_abst)
 message("Abstimmungen crawled")
 
 
-get_sitzungsprotokolle()
+get_sitzungsprotokolle(pdf_df = pdf_df)
 message("Sitzungsprotokolle crawled")
