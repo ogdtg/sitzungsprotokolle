@@ -113,3 +113,27 @@ prepare_text_data <- function(pdf_df, date)
 **Returns:**
 - A dataframe containing the prepared text data.
 
+
+# Funktionsweise (05.07.2024)
+
+## Mitglieder
+
+PDF Mitgliederliste wird gescraped und als Master verwendet. Ausserdem wird die Seite der Mitglieder gescraped, um die Partei zuspielen zu können. Gibt es für einen EIntrag in der Mitgliederliste keinen Eintrag auf der Seite, weil z.B. der Name falsch geschrieben ist, so wird ein Issue eröffent.
+
+Alle Einträge die je gescraped wurden, werden in `mitglieder_full.rds` gespeichert
+
+## Geschaefte
+
+Geschäfte werden aus der GRGEKO gescraped. Alle Vorstösser werden mit der aktuellen Mitgliederliste abgegelichen. Wenn es für einen Vorstösser keinen Treffer in der Mitgliederliste gibt, wird ein Issue eröffnet.
+
+## Abstimmungen
+
+Abstimmungen werden aus den PDFs extrahiert. Verwendet werden alle PDFs die "Trakt" im Dateinamen haben. Alle Files werden überprüft, ob es sich dabei um Abstimmungsprotokolle handelt
+
+### Mögliche Probleme
+- Manche Files können scheinbar nicht verarbeitet werden. Lokal funktioniert dies allerdings problemlos
+
+## Sitzungsprotokolle (siehe oben)
+
+Sitzungsprotokolle werden nach dem oben beschriebenen Muster aufbereitet und via push API an data.tg.ch gesendet
+
