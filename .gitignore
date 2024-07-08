@@ -7,3 +7,4 @@ pdf/
 *.Rproj
 .Rhistory
 local_data/
+local_run.R
