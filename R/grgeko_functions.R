@@ -239,21 +239,34 @@ prepare_ogd_vorstoesse <- function(data_list){
   
   
   final_vorstoesser <- vorstoesser %>% 
+    mutate_all(~ na_if(., "")) %>% 
     mutate_all(as.character) %>% 
-    anti_join(old_vorstoesser, by = "geschaeftsnummer") %>% 
+    anti_join(old_vorstoesser   %>%   mutate_all(~ na_if(., "")), 
+              by = "geschaeftsnummer") %>% 
     bind_rows(old_vorstoesser) %>% 
     mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
   
   final_vorstoesse <- vorstoesse_wide %>% 
     mutate_all(as.character) %>% 
-    anti_join(old_vorstoesse, by = "geschaeftsnummer") %>% 
+    mutate_all(~ na_if(., "")) %>% 
+    anti_join(old_vorstoesse   %>%   mutate_all(~ na_if(., "")), 
+              by = "geschaeftsnummer") %>% 
     bind_rows(old_vorstoesse) %>% 
-    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
+    mutate_all(~ na_if(., "")) %>% 
+    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])")) |> 
+    distinct() %>%
+    group_by(geschaeftsnummer) %>%
+    mutate(n = n()) %>% 
+    ungroup() %>% 
+    filter(n==1|(n==2 & !is.na(departement))) %>% 
+    select(-n)
   
   
   final_dokumente <- dokumente %>% 
+    mutate_all(~ na_if(., "")) %>% 
     mutate_all(as.character) %>% 
-    anti_join(old_dokumente, by = "geschaeftsnummer") %>% 
+    anti_join(old_dokumente   %>%   mutate_all(~ na_if(., "")), 
+              by = "geschaeftsnummer") %>% 
     bind_rows(old_dokumente) %>% 
     mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
   
