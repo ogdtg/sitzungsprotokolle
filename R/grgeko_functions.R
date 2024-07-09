@@ -216,7 +216,9 @@ prepare_ogd_vorstoesse <- function(data_list){
   vorstoesser <- data_list[[2]] %>% 
     filter(!if_all(c(nachname, vorname, partei), is.na))  %>% 
     rename(geschaeftsnummer = "registraturnummer") %>% 
-    mutate_if(is.character,~str_replace_all(.x,'"',"'"))
+    mutate_if(is.character,~str_replace_all(.x,'"',"'")) %>% 
+    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])")) 
+    
   
   
   # Dokumente
@@ -229,30 +231,30 @@ prepare_ogd_vorstoesse <- function(data_list){
   
   
   old_vorstoesser <- read.csv("data/vorstoesser.csv") %>% 
-    mutate_all(as.character)
+    mutate_all(as.character) %>% 
+    anti_join(vorstoesser,by = "geschaeftsnummer")
   
   old_vorstoesse <- read.csv("data/geschaefte.csv")%>% 
-    mutate_all(as.character)
+    mutate_all(as.character)  %>% 
+    anti_join(vorstoesse_wide,by = "geschaeftsnummer")
   
   old_dokumente <- read.csv("data/dokumente.csv") %>% 
-    mutate_all(as.character)
+    mutate_all(as.character) %>% 
+    anti_join(dokumente,by = "geschaeftsnummer")
   
   
   final_vorstoesser <- vorstoesser %>% 
     mutate_all(~ na_if(., "")) %>% 
     mutate_all(as.character) %>% 
-    anti_join(old_vorstoesser   %>%   mutate_all(~ na_if(., "")), 
-              by = "geschaeftsnummer") %>% 
     bind_rows(old_vorstoesser) %>% 
-    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
+    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])")) %>% 
+    distinct()
+    
   
   final_vorstoesse <- vorstoesse_wide %>% 
     mutate_all(as.character) %>% 
     mutate_all(~ na_if(., "")) %>% 
-    anti_join(old_vorstoesse   %>%   mutate_all(~ na_if(., "")), 
-              by = "geschaeftsnummer") %>% 
     bind_rows(old_vorstoesse) %>% 
-    mutate_all(~ na_if(., "")) %>% 
     mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])")) |> 
     distinct() %>%
     group_by(geschaeftsnummer) %>%
@@ -265,13 +267,11 @@ prepare_ogd_vorstoesse <- function(data_list){
   final_dokumente <- dokumente %>% 
     mutate_all(~ na_if(., "")) %>% 
     mutate_all(as.character) %>% 
-    anti_join(old_dokumente   %>%   mutate_all(~ na_if(., "")), 
-              by = "geschaeftsnummer") %>% 
     bind_rows(old_dokumente) %>% 
     mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
   
   
-  write.table(final_vorstoesser, file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
+  write.table(old_vorstoesser , file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
   write.table(final_dokumente, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
