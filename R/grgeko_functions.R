@@ -271,7 +271,7 @@ prepare_ogd_vorstoesse <- function(data_list){
     mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
   
   
-  write.table(old_vorstoesser , file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
+  write.table(final_vorstoesser , file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
   write.table(final_dokumente, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
