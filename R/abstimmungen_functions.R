@@ -222,12 +222,13 @@ prepare_abstimmung_pdf <- function(url){
     slice(-c(1:start_index))
   
   var_data <- pdf_data_abst %>% 
-    filter(text %in% c("Name","Fraktion","Stimme")&font_size>min(font_size)&page==1) 
-  
+    filter(text %in% c("Name","Nr.","Fraktion","Stimme")&font_size>min(font_size)&page==1) 
+
   abst_data <- pdf_data_abst_red %>% 
     anti_join(var_data) %>% 
     left_join(var_data %>% 
                 select(text,x) %>% 
+                mutate(x = ifelse(text=="Fraktion",x-1,x))  %>% 
                 rename(cat = "text"),by = "x") %>% 
     mutate(cat = zoo::na.locf(cat)) %>% 
     group_by(cat,y,page) %>% 

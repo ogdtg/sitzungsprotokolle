@@ -193,8 +193,8 @@ get_mitglieder <- function(file="mitglieder.pdf"){
                 select(-Name), by = c("fullname"="name")) %>% 
     select(-fullname) %>% 
     mutate(datenstand = mitglieder_list$stand) %>% 
-    mutate_if(is.character,str_trim) %>% 
-    mutate(partei = str_replace(partei,"SP","SP und Gewerkschaften"))
+    mutate_if(is.character,str_trim) #%>% 
+    # mutate(partei = str_replace(partei,"SP","SP und Gewerkschaften"))
   
   names(mitglieder) <- tolower(names(mitglieder)) %>% str_replace_all("\\.","_") %>% str_replace_all("-","_")
   
