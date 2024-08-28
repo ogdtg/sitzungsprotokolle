@@ -86,9 +86,10 @@ extract_speaker_text <- function(pdf_data_text){
   
   all_speaker <- content_base %>%
     mutate(lag_text = lag(text)) %>%
+    mutate(lag_lag_text = lag(lag_text)) %>% 
     mutate(lead_font = lead(font_name)) %>%
     mutate(speaker = case_when(
-      str_detect(font_name,"[B|b]old") & (lag_sep =="\n"| lag_lag_sep == "\n" |lag_text=="Dr.") & stringr::str_detect(text,"\\:|\\,") ~ TRUE,
+      str_detect(font_name,"[B|b]old") & (lag_sep =="\n"| lag_lag_sep == "\n" |lag_text=="Dr."|lag_lag_text=="Kommissionspräsident"|lag_lag_text=="Kommissionspräsidentin") & stringr::str_detect(text,"\\:|\\,") ~ TRUE,
       TRUE ~ FALSE
     )) %>%
     mutate(speaker = case_when(
@@ -102,9 +103,16 @@ extract_speaker_text <- function(pdf_data_text){
       speaker & str_detect(text,"Antrag:")  & str_detect(lag_text,"folgenden") ~ FALSE,
       str_detect(font_name,"[B|b]old") & str_detect(text,":") & lag_lag_sep=="\n" & str_detect(lag_text,"Präsident")  & str_detect(lag(font_name),"[B|b]old") ~ TRUE,
       str_detect(font_name,"[B|b]old") & str_detect(text,":") & lag(lag_lag_sep)=="\n"& str_detect(lag(lag_text),"Präsident")  & str_detect(lag(font_name),"[B|b]old") & str_detect(lag(lag(font_name)),"[B|b]old")~ TRUE,
-      
+
       TRUE~ speaker
     )) %>%
+    mutate(kom_pres = case_when(
+      str_detect(font_name,"[B|b]old")  & (lag_lag_text=="Kommissionspräsident"|lag_lag_text=="Kommissionspräsidentin") & stringr::str_detect(text,"\\:|\\,") ~ TRUE,
+      str_detect(font_name,"[B|b]old")  & (lag(lag_lag_text)=="Kommissionspräsident"|lag(lag_lag_text)=="Kommissionspräsidentin") & stringr::str_detect(text,"\\:|\\,") ~ TRUE,
+      str_detect(font_name,"[B|b]old")  & (lag_text=="Kommissionspräsident"|lag_text=="Kommissionspräsidentin") & stringr::str_detect(text,"\\:|\\,") ~ TRUE,
+      
+      TRUE ~ FALSE
+    )) %>% 
     mutate(full_speaker = case_when(
       speaker & lag_lag_sep == "\n" & lag_sep != "\n" ~ paste0(lag(text_string),text_string),
       speaker & lag_sep == "\n" ~ paste0(text_string),
@@ -113,8 +121,15 @@ extract_speaker_text <- function(pdf_data_text){
       
       TRUE ~ NA_character_
     )) %>%
+    mutate(full_speaker = case_when(
+      kom_pres & (lag(lag_lag_text)=="Kommissionspräsident"|lag(lag_lag_text)=="Kommissionspräsidentin") ~ paste0(lag(lag(lag(text_string))),lag(lag(text_string)),lag(text_string),text_string),
+      kom_pres & (lag_lag_text=="Kommissionspräsident"|lag_lag_text=="Kommissionspräsidentin") ~ paste0(lag(lag(text_string)),lag(text_string),text_string),
+      kom_pres & (lag_text=="Kommissionspräsident"|lag_text=="Kommissionspräsidentin") ~ paste0(lag(text_string),text_string),
+      
+      TRUE ~ full_speaker
+    )) %>%
     mutate(party = case_when(
-      speaker & (lag_sep =="\n"| lag_lag_sep == "\n") & stringr::str_detect(text,"\\,") ~ TRUE,
+      speaker & (lag_sep =="\n"| lag_lag_sep == "\n"|kom_pres) & stringr::str_detect(text,"\\,") ~ TRUE,
       TRUE ~ FALSE
     ))
   

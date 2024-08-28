@@ -198,10 +198,26 @@ get_mitglieder <- function(file="mitglieder.pdf"){
   
   names(mitglieder) <- tolower(names(mitglieder)) %>% str_replace_all("\\.","_") %>% str_replace_all("-","_")
   
+  
+  # Wird nicht mehr benötigt sobald nr auch im Mitgliederfile vorhanden ist
+  if (!"nr" %in% names(mitglieder)){
+    mitglieder_old <- readRDS("data/mitglieder_full.rds")
+    
+    mitglieder_mod <- mitglieder %>% left_join(mitglieder_old %>% 
+                                                 distinct(nr, name,vorname,partei)) %>% 
+      relocate(nr)
+  } else {
+    mitglieder_mod <- mitglieder
+  }
+  
+
+    
+  
   # Save
-  write.table(mitglieder, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
+  write.table(mitglieder_mod, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
   
+  saveRDS(mitglieder_mod,"data/gr_mitglieder.rds")
   saveRDS(scrape_mg,"data/scrape_gr_mg.rds")
   message("Mitglieder Data prepared")
   
@@ -211,18 +227,28 @@ get_mitglieder <- function(file="mitglieder.pdf"){
 
 check_mitglieder <- function(mitglieder_df){
   
-  # Abgleich und Erstellung einer kompletten Mitgliederliste inklusive Änderungen
+  
+  # Abgleich ob alle Mitglieder einer Nummer zugeordnet werden können
+  # Nach Einführung der Nummer ins PDF kann dies gelöscht/verändert werden
   mitglieder_old <- readRDS("data/mitglieder_full.rds") %>% mutate_if(is.character,str_trim)
+  
+  mitglieder_join_nr <- mitglieder_df %>% 
+    left_join(mitglieder_old %>% 
+                select(c("name", "vorname","partei","fraktion","nr")), by = c("name", "vorname","partei","fraktion"))
+  
+  
+  
+  # Abgleich und Erstellung einer kompletten Mitgliederliste inklusive Änderungen
   mitglieder_changes_total_old <- readRDS("data/mitglieder_changes_total.rds") %>% mutate_if(is.character,str_trim)
   mitglieder_changes_name_party_fraktion_old <- readRDS("data/mitglieder_changes_name_party_fraktion.rds") %>% mutate_if(is.character,str_trim)
   
   # Gesamtdaten
-  mitglieder_full <- mitglieder_df %>% 
+  mitglieder_full <- mitglieder_join_nr %>% 
     bind_rows(mitglieder_old) %>% 
-    distinct(name,vorname,partei,fraktion,.keep_all = T)
+    distinct(nr,name,vorname,partei,fraktion,.keep_all = T)
   
   # Generelle Änderungen
-  mitglieder_changes_total <- mitglieder_df %>% 
+  mitglieder_changes_total <- mitglieder_join_nr %>% 
     anti_join(mitglieder_old) %>% 
     mutate(change_date = Sys.Date()) 
   
@@ -230,8 +256,8 @@ check_mitglieder <- function(mitglieder_df){
     bind_rows(mitglieder_changes_total_old)
   
   # Änderung an Namen, Partei oder Fraktion
-  mitglieder_changes_name_party_fraktion <- mitglieder_df %>% 
-    anti_join(mitglieder_old, by = c("name","vorname","partei","fraktion")) %>% 
+  mitglieder_changes_name_party_fraktion <- mitglieder_join_nr %>% 
+    anti_join(mitglieder_old, by = c("nr","name","vorname","partei","fraktion")) %>% 
     mutate(change_date = Sys.Date()) 
   
   mitglieder_changes_name_party_fraktion_full <- mitglieder_changes_name_party_fraktion %>% 
@@ -242,19 +268,16 @@ check_mitglieder <- function(mitglieder_df){
       mutate(issue_body = paste0(vorname," ",name," (",partei,")", " [",fraktion,"]")) %>% 
       pull(issue_body) %>% 
       paste0(.,collapse = "\n")
-    
-    create_gh_issue(
-      title = paste0("Neue/veraenderte Mitglieder ",Sys.Date()),
-      body = paste0(
-        "Folgende Eintragungen sind neu oder wurden veraendert:\n\n",
-        issue_body_mg
-      )
-    )
-    message("Issue erstellt")
+
+
+    # message("Issue erstellt")
     
     
+  } else {
+    issue_body_mg <- ""
   }
   
+  saveRDS(issue_body_mg, "data/gh_issue_mitgl_issue_body_mg.rds")
   saveRDS(mitglieder_full,"data/mitglieder_full.rds")
   saveRDS(mitglieder_changes_total_full,"data/mitglieder_changes_total.rds")
   saveRDS(mitglieder_changes_name_party_fraktion_full,"data/mitglieder_changes_name_party_fraktion.rds")
@@ -263,3 +286,93 @@ check_mitglieder <- function(mitglieder_df){
   
   return(mitglieder_full)
 }
+
+
+
+
+
+#' Creates GitHub Issue in Case Vorstösser oder Mtglieder sind unbekannt
+#'
+#' @return
+#' @export
+#'
+#' @examples
+create_issues <- function(){
+  gnum_string <- readRDS("data/gh_issue_vorst_gnum_string.rds")
+  issue_body <- readRDS( "data/gh_issue_vorst_issue_body.rds")
+  
+  if (gnum_string != "" & issue_body != ""){
+    create_gh_issue(
+      title = paste0("GRGEKO: Unbekannte Vorstoesser bei ",gnum_string),
+      body = paste0(
+        "Folgende Vorstoesser konnten keinem Eintrag aus der Mitgliederliste zugeordnet werden:\n\n",
+        issue_body
+      )
+    )
+  }
+  
+  
+  issue_body_mg <- readRDS( "data/gh_issue_mitgl_issue_body_mg.rds")
+  
+  if (issue_body_mg != ""){
+    create_gh_issue(
+      title = paste0("Neue/veraenderte Mitglieder ",Sys.Date()),
+      body = paste0(
+        "Folgende Eintragungen sind neu oder wurden veraendert:\n\n",
+        issue_body_mg
+      )
+    )
+  }
+}
+
+
+
+#' Mitglieder Daten updaten
+#'
+#' @description
+#' Bereitet die Mitgliederdaten auf. Sollte es zu einem Fehler kommen werden die Daten wieder auf den Ausgangsstand zurückgesetzt
+#' 
+#' @return data.frame Gesamtmitglieder
+#' @export
+#'
+#' @examples
+update_mitglieder <- function(){
+  
+  scrape_mg_pre <- readRDS("data/scrape_gr_mg.rds")
+  mitglieder_ogd_pre <- readRDS("data/gr_mitglieder.rds")
+  issue_body_mg_pre <- readRDS( "data/gh_issue_mitgl_issue_body_mg.rds")
+  mitglieder_full_pre <- readRDS("data/mitglieder_full.rds")
+  mitglieder_changes_total_full_pre <- readRDS("data/mitglieder_changes_total.rds")
+  mitglieder_changes_name_party_fraktion_full_pre <- readRDS("data/mitglieder_changes_name_party_fraktion.rds")
+
+  tryCatch({
+    mitglieder <- get_mitglieder()
+    message("Mitglieder crawled")
+    
+    mitglieder_full <- check_mitglieder(mitglieder)
+    message("Mitglieder checked")
+    mitglieder_full
+  }, error = function(cond){
+    
+    saveRDS(scrape_mg_pre,"data/scrape_gr_mg.rds")
+    saveRDS(mitglieder_ogd_pre,"data/gr_mitglieder.rds")
+    saveRDS(issue_body_mg_pre, "data/gh_issue_mitgl_issue_body_mg.rds")
+    saveRDS(mitglieder_full_pre,"data/mitglieder_full.rds")
+    saveRDS(mitglieder_changes_total_full_pre,"data/mitglieder_changes_total.rds")
+    saveRDS(mitglieder_changes_name_party_fraktion_full_pre,"data/mitglieder_changes_name_party_fraktion.rds")
+    
+    
+    write.table(mitglieder_ogd_pre, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
+                row.names = F, na="",fileEncoding = "utf-8")
+    
+    stop(paste0("Mitglieder Update schlug fehl:", cond,"\nSämtliche Daten werden auf den Ursprungswert zurückgesetzt."))
+  })
+  
+
+  
+}
+
+
+
+
+

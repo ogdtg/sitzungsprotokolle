@@ -197,7 +197,7 @@ scrape_grgeko <- function(legislatur = 2020) {
 #' @export
 #'
 #' @examples
-prepare_ogd_vorstoesse <- function(data_list){
+prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
   # Vorstoesser
   vorstoesse <- data_list[[1]] %>% 
     mutate(datum_geschaeft_eingang = lubridate::dmy(eintrittsdatum)) %>% 
@@ -217,7 +217,13 @@ prepare_ogd_vorstoesse <- function(data_list){
     filter(!if_all(c(nachname, vorname, partei), is.na))  %>% 
     rename(geschaeftsnummer = "registraturnummer") %>% 
     mutate_if(is.character,~str_replace_all(.x,'"',"'")) %>% 
-    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])")) 
+    mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])")) %>% 
+    left_join(mitglieder_df %>% 
+                rename(nachname = "name") %>% 
+                select(nachname,vorname,partei, nr) %>% 
+                distinct()) %>% 
+    relocate(nr)
+    
     
   
   
@@ -248,7 +254,8 @@ prepare_ogd_vorstoesse <- function(data_list){
     mutate_all(as.character) %>% 
     bind_rows(old_vorstoesser) %>% 
     mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])")) %>% 
-    distinct()
+    distinct() 
+  
     
   
   final_vorstoesse <- vorstoesse_wide %>% 
@@ -279,6 +286,9 @@ prepare_ogd_vorstoesse <- function(data_list){
               row.names = F, na="",fileEncoding = "utf-8")
   
   saveRDS(final_vorstoesse,"data/geschaefte.rds")
+  saveRDS(final_vorstoesser,"data/vorstoesser.rds")
+  saveRDS(final_dokumente,"data/dokumente.rds")
+  
   return(list(vorstoesser=vorstoesser,dokumente=dokumente,vorstoesse = vorstoesse_wide))
   
   
@@ -475,17 +485,19 @@ get_vorstossdaten <- function(legislatur=current_legislatur, mitglieder_df){
   geschafte_list <- scrape_grgeko(legislatur = legislatur)
   
   # Daten aufbereiten für OGD
-  geschaefte_prep <- prepare_ogd_vorstoesse(geschafte_list)
+  geschaefte_prep <- prepare_ogd_vorstoesse(geschafte_list,mitglieder_df)
   
   
   if (nrow(geschaefte_prep$vorstoesser)>0){
+
     
+    temp <- geschaefte_prep$vorstoesser 
     
     compare_df_old <- readRDS("data/compare_df.rds")
     
-    compare_df <- geschaefte_prep$vorstoesser %>% 
+    compare_df <- temp %>% 
       # filter(!is.na(nachname)) %>% 
-      distinct(nachname,vorname,partei) %>% 
+      distinct(nr,nachname,vorname,partei) %>% 
       anti_join(mitglieder_df %>% 
                   rename(nachname = "name"))
     
@@ -517,22 +529,58 @@ get_vorstossdaten <- function(legislatur=current_legislatur, mitglieder_df){
         pull(issue_body) %>% 
         paste0(.,collapse="\n")
       
-      create_gh_issue(
-        title = paste0("GRGEKO: Unbekannte Vorstoesser bei ",gnum_string),
-        body = paste0(
-          "Folgende Vorstoesser konnten keinem Eintrag aus der Mitgliederliste zugeordnet werden:\n\n",
-          issue_body
-        )
-      )
-      message("GitHub Issue created (GRGEKO)")
+      # create_gh_issue(
+      #   title = paste0("GRGEKO: Unbekannte Vorstoesser bei ",gnum_string),
+      #   body = paste0(
+      #     "Folgende Vorstoesser konnten keinem Eintrag aus der Mitgliederliste zugeordnet werden:\n\n",
+      #     issue_body
+      #   )
+      # )
+      
+
+      
+      # message("GitHub Issue created (GRGEKO)")
       compare_df_new %>% 
         bind_rows(existing_issues) %>% 
         saveRDS("data/existing_issues.rds")
       
       
       
+    } else {
+      gnum_string <- ""
+      issue_body <- ""
     }
+    
+  } else {
+    gnum_string <- ""
+    issue_body <- ""
   }
+  saveRDS(gnum_string, "data/gh_issue_vorst_gnum_string.rds")
+  saveRDS(issue_body, "data/gh_issue_vorst_issue_body.rds")
   message("GRGEKO data crawled and checked")
   return(geschaefte_prep)
 }
+
+
+
+# update_vorstossdaten <- function(...){
+#   final_vorstoesse_pre <- readRDS("data/geschaefte.rds")
+#   final_dokumente_pre <- readRDS("data/dokumente.rds")
+#   final_vorstoesser_pre <- readRDS("data/vorstoesser.rds")
+#   existing_issues_pre <- readRDS("data/existing_issues.rds")
+#   compare_df_pre <- readRDS("data/compare_df.rds")
+#   
+#   tryCatch({
+#     
+#   }, error = function(cond){
+#     write.table(final_vorstoesser_pre , file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
+#                 row.names = F, na="",fileEncoding = "utf-8")
+#     write.table(final_dokumente_pre, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
+#                 row.names = F, na="",fileEncoding = "utf-8")
+#     write.table(final_vorstoesse_pre, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
+#                 row.names = F, na="",fileEncoding = "utf-8")
+#     
+#     saveRDS(gnum_string_pre, "data/gh_issue_vorst_gnum_string.rds")
+#     saveRDS(issue_body_pre, "data/gh_issue_vorst_issue_body.rds")
+#   })
+# }

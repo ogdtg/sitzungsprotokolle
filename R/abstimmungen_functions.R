@@ -180,6 +180,31 @@ crawl_pdf <- function(url){
 }
 
 
+create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T){
+  pdf_data_abst_red %>% 
+    anti_join(var_data) %>% 
+    left_join(var_data %>% 
+                select(text,x) %>% 
+                mutate(x = ifelse(text=="Fraktion" & substract_one,x-1,x))  %>% 
+                rename(cat = "text"),by = "x") %>% 
+    mutate(cat = zoo::na.locf(cat)) %>% 
+    group_by(cat,y,page) %>% 
+    summarise(text = paste0(text, collapse = " ")) %>% 
+    ungroup() %>% 
+    pivot_wider(names_from = cat,values_from = text) %>% 
+    select(-c(y,page)) %>% 
+    mutate(datum = datum,
+           geschaeftsnummer = str_extract(traktandum,"\\((\\d.*?\\d)\\)") %>% str_remove("\\(") %>% str_remove("\\)"),
+           traktandum = traktandum) %>% 
+    mutate_if(is.character,str_trim) %>% 
+    mutate_if(is.character,~str_replace_all(.x,'"',"'")) %>% 
+    rename(fraktion = "Fraktion",
+           name_vorname="Name",
+           stimme = "Stimme",
+           nr = "Nr.")
+}
+
+
 
 #' Downloads und prepares Abstimmungs PDF
 #'
@@ -224,26 +249,12 @@ prepare_abstimmung_pdf <- function(url){
   var_data <- pdf_data_abst %>% 
     filter(text %in% c("Name","Nr.","Fraktion","Stimme")&font_size>min(font_size)&page==1) 
 
-  abst_data <- pdf_data_abst_red %>% 
-    anti_join(var_data) %>% 
-    left_join(var_data %>% 
-                select(text,x) %>% 
-                mutate(x = ifelse(text=="Fraktion",x-1,x))  %>% 
-                rename(cat = "text"),by = "x") %>% 
-    mutate(cat = zoo::na.locf(cat)) %>% 
-    group_by(cat,y,page) %>% 
-    summarise(text = paste0(text, collapse = " ")) %>% 
-    ungroup() %>% 
-    pivot_wider(names_from = cat,values_from = text) %>% 
-    select(-c(y,page)) %>% 
-    mutate(datum = datum,
-           geschaeftsnummer = str_extract(traktandum,"\\((\\d.*?\\d)\\)") %>% str_remove("\\(") %>% str_remove("\\)"),
-           traktandum = traktandum) %>% 
-    mutate_if(is.character,str_trim) %>% 
-    mutate_if(is.character,~str_replace_all(.x,'"',"'")) %>% 
-    rename(fraktion = "Fraktion",
-           name_vorname="Name",
-           stimme = "Stimme")
+  abst_data <- tryCatch({
+    create_abst_data(pdf_data_abst_red, var_data, substract_one = T)
+  }, error = function(cond){
+    create_abst_data(pdf_data_abst_red, var_data, substract_one = F)
+    
+  })
   
   
   return(abst_data)

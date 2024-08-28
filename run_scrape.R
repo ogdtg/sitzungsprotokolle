@@ -22,11 +22,8 @@ current_legislatur <- 2024
 ## Mitglieder scrape
 
 
-mitglieder <- get_mitglieder()
-message("Mitglieder crawled")
+mitglieder_full <- update_mitglieder()
 
-mitglieder_full <- check_mitglieder(mitglieder)
-message("Mitglieder checked")
 
 geschaefte <- get_vorstossdaten(legislatur=current_legislatur, mitglieder_df=mitglieder_full)
 message("Vorstossdaten crawled")
@@ -48,3 +45,6 @@ message("Abstimmungen crawled")
 
 get_sitzungsprotokolle(pdf_df = pdf_df)
 message("Sitzungsprotokolle crawled")
+
+
+create_issues()
