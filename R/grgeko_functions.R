@@ -201,7 +201,7 @@ prepare_ogd_vorstoesse <- function(data_list){
   # Vorstoesser
   vorstoesse <- data_list[[1]] %>% 
     mutate(datum_geschaeft_eingang = lubridate::dmy(eintrittsdatum)) %>% 
-    select(datum_geschaeft_eingang,registraturnummer,grg_nummer,geschaftstitel,geschaftsart,kennung,sachbegriff,status,departement) %>% 
+    select(datum_geschaeft_eingang,registraturnummer,grg_nummer,geschaftstitel,geschaftsart,kennung,sachbegriff,status,departement,anzahl_mitunterzeichnende) %>% 
     rename(geschaeftsnummer = "registraturnummer")
   
   max_splits <- max(sapply(strsplit(vorstoesse$sachbegriff, ", \\d"), length))
