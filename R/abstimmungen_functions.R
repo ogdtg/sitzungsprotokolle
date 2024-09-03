@@ -175,7 +175,7 @@ crawl_pdf <- function(url){
     # Save the content as a binary file to avoid corruption
     writeBin(content(response, "raw"), path)
   } else {
-    stop("Failed to download PDF: ", status_code(response))
+    stop("Failed to download PDF: ", status_code(response),content(response))
   }
   
   
@@ -227,6 +227,7 @@ create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,datu
 #'
 #' @examples
 prepare_abstimmung_pdf <- function(url){
+  Sys.sleep(5) # to avoid tooo many requestsa
   print(url)
   pdf_data_abst <- crawl_pdf(url)
   
