@@ -175,7 +175,7 @@ crawl_pdf <- function(url){
     # Save the content as a binary file to avoid corruption
     writeBin(content(response, "raw"), path)
   } else {
-    stop("Failed to download PDF: ", status_code(response),content(response))
+    stop("Failed to download PDF: ", status_code(response),"\n",rawToChar(content(response)))
   }
   
   
