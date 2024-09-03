@@ -165,10 +165,22 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
 #' @examples
 crawl_pdf <- function(url){
   
-  
   path <- tempfile(fileext = ".pdf")
+  
+  # Send the GET request and handle the response
+  response <- GET(url)
+  
+  # Check if the request was successful (status code 200)
+  if (status_code(response) == 200) {
+    # Save the content as a binary file to avoid corruption
+    writeBin(content(response, "raw"), path)
+  } else {
+    stop("Failed to download PDF: ", status_code(response))
+  }
+  
+  
   # Download the PDF file
-  response <- GET(url, write_disk(path , overwrite = TRUE))
+  # response <- GET(url, write_disk(path , overwrite = TRUE))
   
   df_list <- pdftools::pdf_data(path, font_info = T)
   unlink(path)
