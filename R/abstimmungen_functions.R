@@ -192,7 +192,7 @@ crawl_pdf <- function(url){
 }
 
 
-create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T){
+create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,datum,traktandum){
   pdf_data_abst_red %>% 
     anti_join(var_data) %>% 
     left_join(var_data %>% 
@@ -262,9 +262,9 @@ prepare_abstimmung_pdf <- function(url){
     filter(text %in% c("Name","Nr.","Fraktion","Stimme")&font_size>min(font_size)&page==1) 
 
   abst_data <- tryCatch({
-    create_abst_data(pdf_data_abst_red, var_data, substract_one = T)
+    create_abst_data(pdf_data_abst_red, var_data, substract_one = T,traktandum = traktandum,datum = datum)
   }, error = function(cond){
-    create_abst_data(pdf_data_abst_red, var_data, substract_one = F)
+    create_abst_data(pdf_data_abst_red, var_data, substract_one = F,traktandum = traktandum,datum = datum)
     
   })
   
