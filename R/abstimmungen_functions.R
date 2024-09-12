@@ -231,7 +231,7 @@ create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,subs
 #'
 #' @examples
 prepare_abstimmung_pdf <- function(url){
-  Sys.sleep(3) # to avoid tooo many requestsa
+  Sys.sleep(5) # to avoid tooo many requestsa
   print(url)
   pdf_data_abst <- crawl_pdf(url)
   
