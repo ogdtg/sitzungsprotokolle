@@ -192,13 +192,17 @@ crawl_pdf <- function(url){
 }
 
 
-create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,datum,traktandum){
+create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,substract_one_stimme = T,datum,traktandum){
+  
+  x_stimme <- var_data$x[which(var_data$text=="Stimme")]
+  
   pdf_data_abst_red %>% 
     anti_join(var_data) %>% 
     left_join(var_data %>% 
                 select(text,x) %>% 
                 mutate(x = ifelse(text=="Fraktion" & substract_one,x-1,x))  %>% 
-                rename(cat = "text"),by = "x") %>% 
+                rename(cat = "text") %>% 
+                add_row(cat = "Stimme",x = x_stimme-1),by = "x") %>% 
     mutate(cat = zoo::na.locf(cat)) %>% 
     group_by(cat,y,page) %>% 
     summarise(text = paste0(text, collapse = " ")) %>% 
@@ -227,7 +231,7 @@ create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,datu
 #'
 #' @examples
 prepare_abstimmung_pdf <- function(url){
-  Sys.sleep(5) # to avoid tooo many requestsa
+  Sys.sleep(3) # to avoid tooo many requestsa
   print(url)
   pdf_data_abst <- crawl_pdf(url)
   
@@ -331,7 +335,7 @@ get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschae
       
       
       issue_body <- compare_df_new %>% 
-        mutate(issue_body = paste0(nachname,", ",vorname," (",geschaeftsnummer,")")) %>% 
+        mutate(issue_body = paste0(name_vorname," (",geschaeftsnummer,")")) %>% 
         pull(issue_body) %>% 
         paste0(.,collapse="\n")
       
