@@ -5,6 +5,8 @@ library(rvest)
 library(stringr)
 library(httr)
 library(jsonlite)
+install.packages("arrow")
+
 
 eval(parse("R/load_packages.R", encoding="UTF-8"))
 eval(parse("R/abstimmungen_functions.R", encoding="UTF-8"))
