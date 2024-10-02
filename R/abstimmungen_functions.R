@@ -354,6 +354,10 @@ get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschae
     write.table(abstimmungen, file = "data/abstimmungen_ogd.csv", quote = T, sep = ",", dec = ".", 
                 row.names = F, na="",fileEncoding = "utf-8")
     
+    write_parquet(abstimmungen,"parquet/abstimmungen.parquet")
+    
+    
+
     saveRDS(max(abstimmungen$datum),"data/last_abstimmung.rds")
   }
 }

@@ -187,8 +187,8 @@ get_mitglieder <- function(file="mitglieder.pdf"){
   
   
   mitglieder <- mitglieder_list$data %>% 
+    mutate_at(vars(Vorname,Name), ~str_replace_all(.x,intToUtf8(8217),intToUtf8(39))) %>% 
     mutate(fullname = paste0(Vorname," ",Name)) %>% 
-    mutate(fullname = str_replace_all(fullname,intToUtf8(8217),intToUtf8(39))) %>% 
     left_join(scrape_mg %>% 
                 select(-Name), by = c("fullname"="name")) %>% 
     select(-fullname) %>% 
@@ -216,6 +216,8 @@ get_mitglieder <- function(file="mitglieder.pdf"){
   # Save
   write.table(mitglieder_mod, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
+  write_parquet(mitglieder_mod,"parquet/mitglieder.parquet")
+  
   
   saveRDS(mitglieder_mod,"data/gr_mitglieder.rds")
   saveRDS(scrape_mg,"data/scrape_gr_mg.rds")

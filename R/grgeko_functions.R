@@ -285,6 +285,10 @@ prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
   write.table(final_vorstoesse, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
               row.names = F, na="",fileEncoding = "utf-8")
   
+  write_parquet(final_vorstoesser,"parquet/vorstoesser.parquet")
+  write_parquet(final_vorstoesse,"parquet/geschaefte.parquet")
+  
+  
   saveRDS(final_vorstoesse,"data/geschaefte.rds")
   saveRDS(final_vorstoesser,"data/vorstoesser.rds")
   saveRDS(final_dokumente,"data/dokumente.rds")
