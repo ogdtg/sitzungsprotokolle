@@ -3,7 +3,7 @@ if (!require("janitor")) {
   install.packages("janitor")
   library(janitor)
 }
-install.packages("arrow")
+# install.packages("arrow")
 library(arrow)
 
 library(pdftools)

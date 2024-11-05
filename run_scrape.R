@@ -5,6 +5,7 @@ library(rvest)
 library(stringr)
 library(httr)
 library(jsonlite)
+library(arrow)
 install.packages("arrow")
 
 
