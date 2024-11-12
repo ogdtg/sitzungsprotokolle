@@ -58,7 +58,7 @@ create_mitglieder_df <- function(file){
   
   # Get x positions of the variables
   positions <- info_full %>% 
-    filter(text %in% c("Name","Vorname","Beruf","Fraktion","GR-Eintritt","E-Mail","Bezirk","Wohnort","Postadresse","Telefon")) %>% 
+    filter(text %in% c("Name","Vorname","Beruf","Fraktion","GR-Eintritt","E-Mail","Bezirk","Wohnort","Postadresse","Telefon","Wahlbezirk")) %>% 
     distinct(x,text) %>% 
     setNames(c("x","category"))
   
