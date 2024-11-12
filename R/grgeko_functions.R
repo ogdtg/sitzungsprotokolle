@@ -71,12 +71,12 @@ scrape_grgeko <- function(legislatur = 2020) {
       next
     }
     
-    names = html %>%
+    names_fields = html %>%
       html_nodes("div.tg-bc-contact") %>%
       html_nodes("div.ui-g")
     
     # VorstösserInnen extrahieren
-    nam_list = lapply(names, function(x) {
+    nam_list = lapply(names_fields, function(x) {
       temp <- x %>%
         html_nodes("div.ui-g-2") %>%
         html_text() %>%
@@ -201,7 +201,7 @@ prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
   # Vorstoesser
   vorstoesse <- data_list[[1]] %>% 
     mutate(datum_geschaeft_eingang = lubridate::dmy(eintrittsdatum)) %>% 
-    select(datum_geschaeft_eingang,registraturnummer,grg_nummer,geschaftstitel,geschaftsart,kennung,sachbegriff,status,departement,anzahl_mitunterzeichnende) %>% 
+    select(datum_geschaeft_eingang,registraturnummer,grg_nummer,geschaftstitel,geschaftsart,kennung,sachbegriff,status,departement,anzahl_mitunterzeichnende,bemerkungen) %>% 
     rename(geschaeftsnummer = "registraturnummer")
   
   max_splits <- max(sapply(strsplit(vorstoesse$sachbegriff, ", \\d"), length))
@@ -224,8 +224,7 @@ prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
                 distinct()) %>% 
     relocate(nr)
     
-    
-  
+
   
   # Dokumente
   
@@ -269,6 +268,17 @@ prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
     ungroup() %>% 
     filter(n==1|(n==2 & !is.na(departement))) %>% 
     select(-n)
+  
+  
+  erst_unterzeichner <- final_vorstoesser |> 
+    group_by(geschaeftsnummer) |> 
+    summarise(anzahl_erstunterzeichnende = n())
+  
+  
+  final_vorstoesse <- final_vorstoesse |> 
+    left_join(erst_unterzeichner, by = "geschaeftsnummer") |> 
+    mutate(anzahl_erstunterzeichnende = ifelse(is.na(anzahl_erstunterzeichnende),0,anzahl_erstunterzeichnende)) |> 
+    mutate(total_unterzeichnende = as.numeric(anzahl_erstunterzeichnende)+as.numeric(anzahl_mitunterzeichnende))
   
   
   final_dokumente <- dokumente %>% 
