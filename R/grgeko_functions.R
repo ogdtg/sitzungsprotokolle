@@ -277,8 +277,10 @@ prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
   
   final_vorstoesse <- final_vorstoesse |> 
     left_join(erst_unterzeichner, by = "geschaeftsnummer") |> 
+    mutate(anzahl_erstunterzeichnende = coalesce(as.numeric(anzahl_erstunterzeichnende.x),anzahl_erstunterzeichnende.y)) |> 
     mutate(anzahl_erstunterzeichnende = ifelse(is.na(anzahl_erstunterzeichnende),0,anzahl_erstunterzeichnende)) |> 
-    mutate(total_unterzeichnende = as.numeric(anzahl_erstunterzeichnende)+as.numeric(anzahl_mitunterzeichnende))
+    mutate(total_unterzeichnende = as.numeric(anzahl_erstunterzeichnende)+as.numeric(anzahl_mitunterzeichnende)) |> 
+    select(-c(anzahl_erstunterzeichnende.x,anzahl_erstunterzeichnende.y))
   
   
   final_dokumente <- dokumente %>% 
