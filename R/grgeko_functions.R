@@ -1,14 +1,15 @@
-# GRGEKO Scrape
-#' GRGEKO Scrapen
+# GRGEKO scrape pure
+
+#' GRGEKO scrape pure
 #'
-#' @param legislatur 
+#' @param current_legislatur aktuelle Legilsatur
+#' @param old_legislatur letzte Legislatur. Aus dieser werden die noch nicht abgeschlossenen Geschäfte gescraped
 #'
 #' @return
 #' @export
 #'
 #' @examples
-scrape_grgeko <- function(legislatur = 2020) {
-  
+scrape_grgeko_pure <- function(current_legislatur,old_legislatur){
   # Variablen Laden um Felder zu identifizieren
   variables <- readRDS("vars/variables.rds")
   
@@ -21,168 +22,215 @@ scrape_grgeko <- function(legislatur = 2020) {
   data_list <- list() # Daten zu Pol. Geschaefte
   names_list <- list() # VorstoesserInnen
   
-  # Counter für Nummern ohne Dokument (relevant für Abbruchbedingung)
-  nodoc_counter <- 0
+
   
   
-  for (i in 1:10000) {
-    # print(i)
-    # Seite lesen, wenn möglich
-    html <- tryCatch({
-      rvest::read_html(glue::glue("https://grgeko.tg.ch/view?legislatur={legislatur}&grgnum={i}"))
-    },
-    error=function(cond) {
-      NA
-    })
-    
-    if(is.na(html)) {
-      print(glue::glue("Kein Dokument mit grgr-Nummer {i}"))
-      nodoc_counter <- nodoc_counter+1
-      print(paste0("Bisher ",nodoc_counter," aufeinanderfolgende fehlende grg Nummern"))
-      
+  # Vorstossdaten laden
+  vorst_df <- readRDS("data/geschaefte.rds") |> distinct()
+  
+  # GRG Nummer der nicht abgeschlossenen Geschäfte in der letzen Legislaturperiode
+  grg_num_old_leg <- vorst_df |> 
+    filter(substr(geschaeftsnummer,1,2)==substr(old_legislatur,3,4)) |> 
+    filter(status !="abgeschlossen") |> 
+    pull(grg_nummer) |> 
+    as.numeric() 
+  
+  for (legislatur in c(old_legislatur,current_legislatur)){
+    # Counter für Nummern ohne Dokument (relevant für Abbruchbedingung)
+    nodoc_counter <- 0
+    if (legislatur == old_legislatur){
+      start = min(grg_num_old_leg,na.rm = T)
+    } else {
+      rm(i)
+      start = 1
     }
-    
-    # Wenn mehr als 20 aufeinander folgende Nummern kein Dokument liefern sind alle Dokumente gescraped -> Funktion bricht ab
-    if (nodoc_counter == 40) {
-      print("keine weiteren Eintragungen")
-      break
-    }
-    
-    # Zur nächsten Nummer, wenn keine Seite existiert
-    if (is.na(html)) {
-      next
-    } 
-    
-    # Counter nullen wenn Seite gefunden -> zahelung startet von vorne
-    nodoc_counter <-0
-    
-    
-    # Alle Felder
-    divs = html %>%
-      html_nodes(xpath = "//div[contains(@class, 'ui-g-')]")
-    
-    text = divs %>%
-      html_text() %>%
-      gsub("\\n", "", .) %>%
-      str_trim()
-    
-    # Wenn keine Felder -> next
-    if (length(text) == 0) {
-      next
-    }
-    
-    names_fields = html %>%
-      html_nodes("div.tg-bc-contact") %>%
-      html_nodes("div.ui-g")
-    
-    # VorstösserInnen extrahieren
-    nam_list = lapply(names_fields, function(x) {
-      temp <- x %>%
-        html_nodes("div.ui-g-2") %>%
-        html_text() %>%
-        gsub("\\n", "", .) %>%
-        gsub("Vorstösser/Vorstösserin:", "", .) %>%
-        str_trim()
+    for (i in start:10000) {
+      # Seite lesen, wenn möglich
+      html <- tryCatch({
+        rvest::read_html(glue::glue("https://grgeko.tg.ch/view?legislatur={legislatur}&grgnum={i}"))
+      },
+      error=function(cond) {
+        NA
+      })
       
-      temp[temp == ""] = NA
-      return(temp)
-      
-    })
-    
-    names_df = do.call(rbind, nam_list) %>%
-      data.frame() %>%
-      select(-X1) %>%
-      setNames(.[1, ]) %>%
-      filter(!row_number() %in% c(1))
-    
-    # Daten extrahieren
-    temp_list = list()
-    for (index in 3:(length(text) - 1)) {
-      first <- text[index]
-      second <- text[index + 1]
-      
-      if (!first %in% variables) {
-        next
-      }
-      if (second %in% variables) {
-        temp_list[[first]] = c(NA)
-        next
-      } else {
-        temp_list[[first]] = c(second)
+      if(is.na(html)) {
+        print(glue::glue("Kein Dokument mit grgr-Nummer {i}"))
+        nodoc_counter <- nodoc_counter+1
+        print(paste0("Bisher ",nodoc_counter," aufeinanderfolgende fehlende grg Nummern"))
         
       }
       
+      # Wenn mehr als 20 aufeinander folgende Nummern kein Dokument liefern sind alle Dokumente gescraped -> Funktion bricht ab
+      if (nodoc_counter == 40) {
+        print("keine weiteren Eintragungen")
+        break
+      }
       
+      # Zur nächsten Nummer, wenn keine Seite existiert
+      if (is.na(html)) {
+        next
+      } 
+      
+      # Counter nullen wenn Seite gefunden -> zahelung startet von vorne
+      nodoc_counter <-0
+      
+      
+      # Alle Felder
+      divs = html %>%
+        html_nodes(xpath = "//div[contains(@class, 'ui-g-')]")
+      
+      text = divs %>%
+        html_text() %>%
+        gsub("\\n", "", .) %>%
+        str_trim()
+      
+      # Wenn keine Felder -> next
+      if (length(text) == 0) {
+        next
+      }
+      
+      names_fields = html %>%
+        html_nodes("div.tg-bc-contact") %>%
+        html_nodes("div.ui-g")
+      
+      # VorstösserInnen extrahieren
+      nam_list = lapply(names_fields, function(x) {
+        temp <- x %>%
+          html_nodes("div.ui-g-2") %>%
+          html_text() %>%
+          gsub("\\n", "", .) %>%
+          gsub("Vorstösser/Vorstösserin:", "", .) %>%
+          str_trim()
+        
+        temp[temp == ""] = NA
+        return(temp)
+        
+      })
+      
+      names_df = do.call(rbind, nam_list) %>%
+        data.frame() %>%
+        select(-X1) %>%
+        setNames(.[1, ]) %>%
+        filter(!row_number() %in% c(1))
+      
+      # Daten extrahieren
+      temp_list = list()
+      for (index in 3:(length(text) - 1)) {
+        first <- text[index]
+        second <- text[index + 1]
+        
+        if (!first %in% variables) {
+          next
+        }
+        if (second %in% variables) {
+          temp_list[[first]] = c(NA)
+          next
+        } else {
+          temp_list[[first]] = c(second)
+          
+        }
+        
+        
+      }
+      
+      # Datensatz erstellen
+      temp_df <- temp_list %>% bind_rows()
+      
+      # Titel definieren
+      title <- temp_df[variables[10]][[1]]
+      
+      temp_df$Titel <- title
+      
+      names_df$Titel <- title
+      
+      # Dokumente und Links extrahieren
+      docs <- html %>%
+        html_element("dl.ui-datalist-data") %>% 
+        html_elements("a")
+      
+      doc_title <-
+        docs %>% 
+        html_text()
+      
+      
+      temp_df$legislatur <- substr(legislatur,3,4)
+      
+      
+      if (length(doc_title) == 0) {
+        doc_df = data.frame(doc_title = NA,
+                            doc_link = NA,
+                            titel = title)
+        document_list[[title]] <- doc_df
+        data_list[[title]] <- temp_df
+        next
+      }
+      
+      doc_link <- docs %>%
+        html_attr("href") %>% 
+        paste0("https://grgeko.tg.ch",.)
+      
+      doc_df = data.frame(doc_title, doc_link, titel = title)
+      
+      
+      # Einzelne Datensätze zu Liste hinzufügen
+      document_list[[paste0(legislatur,"_",i)]] <- doc_df
+      data_list[[paste0(legislatur,"_",i)]] <- temp_df
+      names_list[[paste0(legislatur,"_",i)]] <- names_df
+      Sys.sleep(.2)
     }
-    
-    # Datensatz erstellen
-    temp_df <- temp_list %>% bind_rows()
-    
-    # Titel definieren
-    title <- temp_df[variables[10]][[1]]
-    
-    temp_df$Titel <- title
-    
-    names_df$Titel <- title
-    
-    # Dokumente und Links extrahieren
-    docs <- html %>%
-      html_element("dl.ui-datalist-data") %>% 
-      html_elements("a")
-    
-    doc_title <-
-      docs %>% 
-      html_text()
-    
-    if (length(doc_title) == 0) {
-      doc_df = data.frame(doc_title = NA,
-                          doc_link = NA,
-                          titel = title)
-      document_list[[title]] <- doc_df
-      data_list[[title]] <- temp_df
-      next
-    }
-    
-    doc_link <- docs %>%
-      html_attr("href") %>% 
-      paste0("https://grgeko.tg.ch",.)
-    
-    doc_df = data.frame(doc_title, doc_link, titel = title)
-    
-    # Einzelne Datensätze zu Liste hinzufügen
-    document_list[[paste0(title,"_",i)]] <- doc_df
-    data_list[[paste0(title,"_",i)]] <- temp_df
-    names_list[[paste0(title,"_",i)]] <- names_df
-    Sys.sleep(.2)
   }
   
+  return(list(names_list=names_list,
+         document_list = document_list,
+         data_list=data_list))
+  
+}
+
+
+
+
+# GRGEKO Scrape
+#' GRGEKO Scrapen
+#'
+#' @param legislatur 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+scrape_grgeko <- function(current_legislatur,old_legislatur) {
+  
+  raw_data <- scrape_grgeko_pure(current_legislatur,old_legislatur)
+    
+  # Datensatz mit Abkürzungen der einzelnen Geschaefte für späteren Join laden
+  join_ga <- readRDS("vars/kennung.rds")
+  
   # Zusammenhängende Datensätze erstellen
-  documents <- document_list %>% bind_rows() %>% janitor::clean_names()
-  data_df <- data_list %>% bind_rows() %>% janitor::clean_names()
-  names_df <- names_list %>% bind_rows() %>% janitor::clean_names()
+  documents <- raw_data$document_list %>% bind_rows() %>% janitor::clean_names()
+  data_df <- raw_data$data_list %>% bind_rows() %>% janitor::clean_names()
+  names_df <- raw_data$names_list %>% bind_rows() %>% janitor::clean_names()
   
   
-  data_df$legislatur_nr = legislatur
+  data_df$legislatur
   data_df <- data_df %>% 
-    left_join(join_ga) %>% 
-    mutate(registraturnummer  = paste0(legislatur_nr,"/",kennung," ",laufnummer,"/",grg_nummer))
+    left_join(join_ga,by ="geschaftsart") %>% 
+    mutate(registraturnummer  = paste0(legislatur,"/",kennung," ",laufnummer,"/",grg_nummer))
   
   join_reg <- data_df %>% 
     distinct(registraturnummer,titel)
   
   names_df <- names_df %>% 
-    left_join(join_reg) %>% 
+    left_join(join_reg,by = "titel") %>% 
     tidyr::separate_rows(nachname,vorname,partei,ort, sep = ", ")
   
   documents <- documents %>% 
-    left_join(join_reg)
+    left_join(join_reg,by = "titel")
   
   # saveRDS(names_df,paste0("Y:\\SK\\SKStat\\R\\Prozesse\\pol\\Parlamentsdienste\\vorstoesse_gr\\data\\neu\\vorstoesser_",legislatur,".rds"))
   # saveRDS(data_df,paste0("Y:\\SK\\SKStat\\R\\Prozesse\\pol\\Parlamentsdienste\\vorstoesse_gr\\data\\neu\\geschaefte_",legislatur,".rds"))
   # saveRDS(documents,paste0("Y:\\SK\\SKStat\\R\\Prozesse\\pol\\Parlamentsdienste\\vorstoesse_gr\\data\\neu\\dokumente_",legislatur,".rds"))
   
-  message(paste0("Dokumente gespeichert unter ",getwd()))
-  
+
   # Datensätze in Liste gepackt zurückgeben
   return(list(data_df,names_df,documents))
 }
@@ -235,16 +283,22 @@ prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
   
   
   
-  old_vorstoesser <- read.csv("data/vorstoesser.csv") %>% 
+  old_vorstoesser <- read.csv("data/vorstoesser.csv", stringsAsFactors = FALSE) %>% 
     mutate_all(as.character) %>% 
+    mutate_all(~ na_if(., "")) %>% 
+    distinct() |> 
     anti_join(vorstoesser,by = "geschaeftsnummer")
   
-  old_vorstoesse <- read.csv("data/geschaefte.csv")%>% 
-    mutate_all(as.character)  %>% 
+  old_vorstoesse <- read.csv("data/geschaefte.csv", stringsAsFactors = FALSE) %>% 
+    mutate_all(as.character) %>% 
+    mutate_all(~ na_if(., "")) %>% 
+    distinct() |> 
     anti_join(vorstoesse_wide,by = "geschaeftsnummer")
   
-  old_dokumente <- read.csv("data/dokumente.csv") %>% 
-    mutate_all(as.character) %>% 
+  old_dokumente <- read.csv("data/dokumente.csv", stringsAsFactors = FALSE) %>% 
+    mutate_all(as.character) %>%
+    mutate_all(~ na_if(., "")) %>%
+    distinct() |> 
     anti_join(dokumente,by = "geschaeftsnummer")
   
   
@@ -496,9 +550,9 @@ scrape_grgeko_single <- function(legislatur = 2020,grg_num) {
 
 
 
-get_vorstossdaten <- function(legislatur=current_legislatur, mitglieder_df){
+get_vorstossdaten <- function(current_legislatur,old_legislatur, mitglieder_df){
   ## GRGEKO Scrape
-  geschafte_list <- scrape_grgeko(legislatur = legislatur)
+  geschafte_list <- scrape_grgeko(current_legislatur=current_legislatur,old_legislatur=old_legislatur)
   
   # Daten aufbereiten für OGD
   geschaefte_prep <- prepare_ogd_vorstoesse(geschafte_list,mitglieder_df)
