@@ -307,7 +307,9 @@ get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschae
     # Abgleich mit bereits gespeicherten Abstimmungen
     abstimmungen <- abstimmungen_join %>% 
       anti_join(abstimmungen_old, by = c("datum","geschaeftsnummer","traktandum")) %>% 
-      bind_rows(abstimmungen_old) 
+      bind_rows(abstimmungen_old) |> 
+      filter(geschaeftsnummer!="") |> 
+      filter(!is.na(geschaeftsnummer)) 
     
     
     # Abgleich mit Mitgliederliste

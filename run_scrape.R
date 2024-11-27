@@ -19,7 +19,7 @@ eval(parse("R/sitzungsprotokolle_functions.R", encoding="UTF-8"))
 
 
 current_legislatur <- 2024
-
+old_legislatur <- 2020
 
 
 ## Mitglieder scrape
@@ -28,7 +28,7 @@ current_legislatur <- 2024
 mitglieder_full <- update_mitglieder()
 
 
-geschaefte <- get_vorstossdaten(legislatur=current_legislatur, mitglieder_df=mitglieder_full)
+geschaefte <- get_vorstossdaten(current_legislatur=current_legislatur,old_legislatur = old_legislatur, mitglieder_df=mitglieder_full)
 message("Vorstossdaten crawled")
 
 
