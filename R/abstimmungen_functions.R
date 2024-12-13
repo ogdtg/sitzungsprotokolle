@@ -282,8 +282,17 @@ prepare_abstimmung_pdf <- function(url){
 get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschaefte.rds"),pdf_df){
   # pdf_df <- get_pdf_list(from_date = readRDS("data/last_abstimmung.rds"))
   
-  pdf_df_abst <- pdf_df %>% 
-    filter(str_detect(name,"Trakt"))
+  # pdf_df_abst <- pdf_df %>% 
+  #   filter(str_detect(name,"Trakt"))
+  
+  pdf_df_abst <- pdf_df %>%
+    filter(!str_detect(name,"Präsenz Vormittag$")) |> 
+    filter(!str_detect(name,"Präsenz Nachmittag$")) |> 
+    filter(!str_detect(name,"Präsenz Abend$")) |> 
+    filter(!str_detect(name,"Kurzprotokoll$")) |> 
+    filter(!str_detect(name,"Tagesordnung$")) 
+  
+  
   
   if (nrow(pdf_df_abst)>0){
     abstimmungen_old <- readRDS("data/abstimmungen_ogd.rds") %>% 
