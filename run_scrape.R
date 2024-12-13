@@ -35,11 +35,18 @@ message("Vorstossdaten crawled")
 last_protocol <- readRDS("vars/last_update.rds")
 last_abstimmung <- readRDS("data/last_abstimmung.rds")
 
+
 pdf_df <- get_pdf_list(from_date = last_protocol)
 
 pdf_df_abst <- pdf_df %>% 
   filter(text>last_abstimmung)
 
+pdf_df_abst <- pdf_df %>%
+  filter(!str_detect(name,"Präsenz Vormittag$")) |> 
+  filter(!str_detect(name,"Präsenz Nachmittag$")) |> 
+  filter(!str_detect(name,"Präsenz Abend$")) |> 
+  filter(!str_detect(name,"Kurzprotokoll$")) |> 
+  filter(!str_detect(name,"Tagesordnung$")) 
 
 
 get_abstimmungen(mitglieder_df=mitglieder_full, pdf_df = pdf_df_abst)

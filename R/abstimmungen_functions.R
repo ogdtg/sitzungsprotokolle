@@ -192,23 +192,33 @@ crawl_pdf <- function(url){
 }
 
 
-create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,substract_one_stimme = T,datum,traktandum){
+create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,substract_one_nr=F,substract_one_stimme = T,datum,traktandum){
   
   x_stimme <- var_data$x[which(var_data$text=="Stimme")]
+  cat_id <- rep(1:(nrow(test)/4),each=4)
   
-  pdf_data_abst_red %>% 
+  
+  temp <- pdf_data_abst_red %>% 
     anti_join(var_data) %>% 
     left_join(var_data %>% 
                 select(text,x) %>% 
                 mutate(x = ifelse(text=="Fraktion" & substract_one,x-1,x))  %>% 
+                mutate(x = ifelse(text=="Nr." & substract_one_nr,x-1,x))  %>% 
                 rename(cat = "text") %>% 
                 add_row(cat = "Stimme",x = x_stimme-1),by = "x") %>% 
     mutate(cat = zoo::na.locf(cat)) %>% 
     group_by(cat,y,page) %>% 
     summarise(text = paste0(text, collapse = " ")) %>% 
-    ungroup() %>% 
-    pivot_wider(names_from = cat,values_from = text) %>% 
+    ungroup() 
+  
+  
+  cat_id <- rep(1:(nrow(temp)/4),each=4)
+  
+  result <- temp %>% 
+    arrange(page,y,cat) |> 
+    mutate(cat_id) |> 
     select(-c(y,page)) %>% 
+    pivot_wider(names_from = cat,values_from = text) %>% 
     mutate(datum = datum,
            geschaeftsnummer = str_extract(traktandum,"\\((\\d.*?\\d)\\)") %>% str_remove("\\(") %>% str_remove("\\)"),
            traktandum = traktandum) %>% 
@@ -217,7 +227,17 @@ create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,subs
     rename(fraktion = "Fraktion",
            name_vorname="Name",
            stimme = "Stimme",
-           nr = "Nr.")
+           nr = "Nr.") |> 
+    select(-cat_id)
+  
+  has_na <- anyNA(result)
+  
+  if (has_na){
+    stop("Dataframe contains NA")
+  } else {
+    return(result)
+  }
+  
 }
 
 
@@ -265,14 +285,27 @@ prepare_abstimmung_pdf <- function(url){
   
   var_data <- pdf_data_abst %>% 
     filter(text %in% c("Name","Nr.","Fraktion","Stimme")&font_size>min(font_size)&page==1) 
+  
+  if (traktandum=="" & nrow(var_data)){
+    warning(url," is not a Abstimmung.")
+    return(NULL)
+  }
 
   abst_data <- tryCatch({
-    create_abst_data(pdf_data_abst_red, var_data, substract_one = T,traktandum = traktandum,datum = datum)
+    create_abst_data(pdf_data_abst_red, var_data, substract_one = T,substract_one_nr=F,traktandum = traktandum,datum = datum)
   }, error = function(cond){
-    create_abst_data(pdf_data_abst_red, var_data, substract_one = F,traktandum = traktandum,datum = datum)
-    
+    tryCatch({
+      create_abst_data(pdf_data_abst_red, var_data, substract_one = F,substract_one_nr=F,traktandum = traktandum,datum = datum)
+    }, error = function(cond){
+      tryCatch({
+        create_abst_data(pdf_data_abst_red, var_data, substract_one = F,substract_one_nr=T,traktandum = traktandum,datum = datum)
+      }, error = function(cond){
+        create_abst_data(pdf_data_abst_red, var_data, substract_one = T,substract_one_nr=T,traktandum = traktandum,datum = datum)
+      })
+    })
   })
   
+  abst_data$url <- url
   
   return(abst_data)
 }
