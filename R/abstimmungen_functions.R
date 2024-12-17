@@ -195,8 +195,7 @@ crawl_pdf <- function(url){
 create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,substract_one_nr=F,substract_one_stimme = T,datum,traktandum){
   
   x_stimme <- var_data$x[which(var_data$text=="Stimme")]
-  cat_id <- rep(1:(nrow(test)/4),each=4)
-  
+
   
   temp <- pdf_data_abst_red %>% 
     anti_join(var_data) %>% 
