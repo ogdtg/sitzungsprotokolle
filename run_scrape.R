@@ -41,7 +41,7 @@ pdf_df <- get_pdf_list(from_date = last_protocol)
 pdf_df_abst <- pdf_df %>% 
   filter(text>last_abstimmung)
 
-pdf_df_abst <- pdf_df %>%
+pdf_df_abst <- pdf_df_abst %>%
   filter(!str_detect(name,"Präsenz Vormittag$")) |> 
   filter(!str_detect(name,"Präsenz Nachmittag$")) |> 
   filter(!str_detect(name,"Präsenz Abend$")) |> 

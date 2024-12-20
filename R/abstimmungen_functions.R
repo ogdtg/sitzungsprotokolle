@@ -194,30 +194,39 @@ crawl_pdf <- function(url){
 
 create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,substract_one_nr=F,substract_one_stimme = T,datum,traktandum){
   
-  x_stimme <- var_data$x[which(var_data$text=="Stimme")]
 
+  # Prepare Datasets
+  pdf_df_red <- pdf_data_abst_red %>% 
+    anti_join(var_data)
   
-  temp <- pdf_data_abst_red %>% 
-    anti_join(var_data) %>% 
-    left_join(var_data %>% 
-                select(text,x) %>% 
-                mutate(x = ifelse(text=="Fraktion" & substract_one,x-1,x))  %>% 
-                mutate(x = ifelse(text=="Nr." & substract_one_nr,x-1,x))  %>% 
-                rename(cat = "text") %>% 
-                add_row(cat = "Stimme",x = x_stimme-1),by = "x") %>% 
+  var_data_mod <- var_data %>% 
+    select(text,x) |> 
+    setNames(c("cat","x"))
+  
+  if (str_detect(traktandum,"Präsenzerfassung")){
+    return(NULL)
+  }
+  
+  
+  result <- fuzzy_left_join(
+    pdf_df_red,
+    var_data_mod,
+    by = c("x" = "x"),
+    match_fun = function(x, y) abs(x - y) <= 1
+  ) |> 
     mutate(cat = zoo::na.locf(cat)) %>% 
-    group_by(cat,y,page) %>% 
+    arrange(page,y) |>
+    group_by(page) |> 
+    mutate(group_id = cumsum(c(1, diff(y)) > 1)) |>
+    mutate(group_id = paste0(page,"_",group_id)) |> 
+    ungroup() |>
+    group_by(cat,group_id,page,y) %>% 
     summarise(text = paste0(text, collapse = " ")) %>% 
-    ungroup() 
-  
-  
-  cat_id <- rep(1:(nrow(temp)/4),each=4)
-  
-  result <- temp %>% 
+    ungroup() |> 
     arrange(page,y,cat) |> 
-    mutate(cat_id) |> 
-    select(-c(y,page)) %>% 
-    pivot_wider(names_from = cat,values_from = text) %>% 
+    select(-c(page,y)) |> 
+    pivot_wider(names_from = cat, values_from = text) %>% 
+    select(-group_id) |> 
     mutate(datum = datum,
            geschaeftsnummer = str_extract(traktandum,"\\((\\d.*?\\d)\\)") %>% str_remove("\\(") %>% str_remove("\\)"),
            traktandum = traktandum) %>% 
@@ -226,8 +235,11 @@ create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,subs
     rename(fraktion = "Fraktion",
            name_vorname="Name",
            stimme = "Stimme",
-           nr = "Nr.") |> 
-    select(-cat_id)
+           nr = "Nr.")
+  
+  if (is.na(result$geschaeftsnummer[1])){
+    return(NULL)
+  }
   
   has_na <- anyNA(result)
   
