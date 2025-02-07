@@ -297,6 +297,11 @@ prepare_abstimmung_pdf <- function(url){
   var_data <- pdf_data_abst %>% 
     filter(text %in% c("Name","Nr.","Fraktion","Stimme")&font_size>min(font_size)&page==1) 
   
+  if (nrow(var_data)==0){
+    warning(traktandum," is not a valid Abstimmung. Maybe the voting software did not work.")
+    return(NULL)
+  }
+  
   if (traktandum=="" & nrow(var_data)){
     warning(url," is not a Abstimmung.")
     return(NULL)

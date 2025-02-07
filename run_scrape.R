@@ -21,7 +21,6 @@ eval(parse("R/sitzungsprotokolle_functions.R", encoding="UTF-8"))
 current_legislatur <- 2024
 old_legislatur <- 2020
 
-
 ## Mitglieder scrape
 
 
