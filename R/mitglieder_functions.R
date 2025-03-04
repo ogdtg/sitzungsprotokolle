@@ -58,23 +58,23 @@ create_mitglieder_df <- function(file){
   
   # Get x positions of the variables
   positions <- info_full %>% 
-    filter(text %in% c("Name","Vorname","Beruf","Fraktion","GR-Eintritt","E-Mail","Bezirk","Wohnort","Postadresse","Telefon","Wahlbezirk")) %>% 
+    filter(text %in% c("Nr.","Name","Vorname","Beruf","Partei","Fraktion","Eintritt","E-Mail","Bezirk","Wohnort","Postadresse","Telefon","Wahlbezirk")) %>% 
     distinct(x,text) %>% 
     setNames(c("x","category"))
   
-  name_x <- positions %>% 
-    filter(category=="Name") %>% 
+  nr_x <- positions %>% 
+    filter(category=="Nr.") %>% 
     pull(x)
   
-  # retrieve the name for grouping the variables later on
-  nachname <- info_full %>%  filter(x== name_x) %>% 
+  # retrieve the nr for grouping the variables later on
+  nr <- info_full %>%  filter(x== nr_x) %>% 
     mutate(lead_y = lead(y, default = max(info_full$y)))
   
   
   # Prepare tthe info df
   info_mod <- info_full %>% 
     filter(font_size<=7) %>% #remove all titles, pages, etc 
-    left_join(nachname) %>% # join for later grouping and identification of the rows
+    left_join(nr) %>% # join for later grouping and identification of the rows
     mutate(sep = ifelse(space," ","\n")) %>% # init separateor (whitespace or newline)
     mutate(lead_y = zoo::na.locf(lead_y)) %>% 
     left_join(positions, by = "x") %>% 
@@ -190,7 +190,7 @@ get_mitglieder <- function(file="mitglieder.pdf"){
     mutate_at(vars(Vorname,Name), ~str_replace_all(.x,intToUtf8(8217),intToUtf8(39))) %>% 
     mutate(fullname = paste0(Vorname," ",Name)) %>% 
     left_join(scrape_mg %>% 
-                select(-Name), by = c("fullname"="name")) %>% 
+                select(-c(Name,partei)), by = c("fullname"="name")) %>% 
     select(-fullname) %>% 
     mutate(datenstand = mitglieder_list$stand) %>% 
     mutate_if(is.character,str_trim) #%>% 
