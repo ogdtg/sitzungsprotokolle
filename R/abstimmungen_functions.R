@@ -70,58 +70,49 @@ get_category_id <- function(loaded_cat=NULL, url = "https://parlament.tg.ch/prot
 #'
 #' @examples
 get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunterlagen.html/16604", from_date = NULL){
+  
+  
+  # Legislatur
   cat1 <- get_category_id(url = url) %>% 
     mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim())
   
   loaded_cat_list <- lapply(cat1$id,dmsLoadCategory)
   
   
+  # Amtsjahr
   cat2 <- lapply(loaded_cat_list,get_category_id) %>% bind_rows() %>% 
     mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
     anti_join(cat1) 
   
-  if (nrow(cat2)==0){
-    loaded_cat_list_final <- loaded_cat_list
-    cat_final <- cat1
-    
-  } else {
-    loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
-    
-    cat1 <- cat1 %>% 
-      bind_rows(cat2)
-    
-    loaded_cat_list_final <- loaded_cat_list2
-    cat_final <- cat2
-    
-    while(nrow(cat2)>0){
-      loaded_cat_list_final <- loaded_cat_list2
-      cat_final <- cat2
-      
-      cat2 <- lapply(loaded_cat_list2,get_category_id) %>% bind_rows() %>% 
-        mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
-        anti_join(cat1)
-      
-      cat2 <- tryCatch({
-        cat2 %>% 
-          mutate(text = as.character(as.Date(text)))
-      }, error = function(cond){
-        cat2 %>% 
-          mutate(text = stringr::str_extract(text,"\\d\\d\\d\\d-\\d\\d-\\d\\d"))
-      })
-      
-      if (!is.null(from_date)){
-        cat2 <- cat2 %>% 
-          filter(as.Date(text)>as.Date(from_date))
-      }
-      
-      cat1 <- cat1 %>% 
-        bind_rows(cat2)
-      
-      loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
-      
-      
-    }
+  
+  loaded_cat_list2 <- lapply(cat2$id,dmsLoadCategory)
+
+  #Sitzungstermine
+  cat3 <- lapply(loaded_cat_list2,get_category_id) %>% bind_rows() %>% 
+    mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim()) %>% 
+    anti_join(cat1)
+  
+  
+  cat3 <- tryCatch({
+    cat3 %>% 
+      mutate(text = as.character(as.Date(text)))
+  }, error = function(cond){
+    cat3 %>% 
+      mutate(text = stringr::str_extract(text,"\\d\\d\\d\\d-\\d\\d-\\d\\d"))
+  }) %>% distinct()
+  
+  
+  if (!is.null(from_date)){
+    cat3 <- cat3 %>% 
+      filter(as.Date(text)>as.Date(from_date))
   }
+  
+  # Dokumente
+  loaded_cat_list_final <- lapply(cat3$id,dmsLoadCategory)
+  
+
+
+
   
   
   
@@ -146,7 +137,7 @@ get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunter
     data.frame(name = text[index],pdf = url[index], parent = parcat[index])
     
   }) %>% bind_rows() %>% 
-    left_join(cat_final %>% 
+    left_join(cat3 %>% 
                 select(-parent), by = c("parent"="id"))
   
   return(pdf_df)
