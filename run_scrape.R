@@ -45,7 +45,8 @@ pdf_df_abst <- pdf_df_abst %>%
   filter(!str_detect(name,"Präsenz Nachmittag$")) |> 
   filter(!str_detect(name,"Präsenz Abend$")) |> 
   filter(!str_detect(name,"Kurzprotokoll$")) |> 
-  filter(!str_detect(name,"Tagesordnung$")) 
+  filter(!str_detect(name,"Tagesordnung$")) |>
+  filter(!str_detect(name,"Tagesordnung"))
 
 
 get_abstimmungen(mitglieder_df=mitglieder_full, pdf_df = pdf_df_abst)
