@@ -8,3 +8,5 @@ pdf/
 .Rhistory
 local_data/
 local_run.R
+hist_geschaefte/
+hist_geschaefte.R
