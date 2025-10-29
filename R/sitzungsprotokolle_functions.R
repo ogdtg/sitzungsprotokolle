@@ -570,15 +570,16 @@ prepare_text_data <- function(pdf_df, date){
     ungroup() %>%
     relocate(registraturnummer,.before = tagesordnungspunkt) %>%
     mutate(sprecher = str_remove_all(sprecher,"\\:|\\,")) %>%
-    mutate(sprecher_typ = case_when(
-      is.na(sprecher_typ) & !is.na(partei) ~ "Mitglied GR",
-      TRUE ~ sprecher_typ
-    )) %>%
-    mutate(sprecher = case_when(
-      !str_detect(sprecher_typ,"Präsident|Präsidentin") ~ str_remove(sprecher,sprecher_typ) %>% str_trim(),
-      TRUE ~ str_trim(sprecher)
-    )) %>%
-    mutate(sprecher = str_remove(sprecher, "^in ")) %>%
+    separate(partei, into = c("sprecher_typ","partei"), sep = ",") %>% 
+    # mutate(sprecher_typ = case_when(
+    #   is.na(sprecher_typ) & !is.na(partei) ~ "Mitglied GR",
+    #   TRUE ~ sprecher_typ
+    # )) %>%
+    # mutate(sprecher = case_when(
+    #   !str_detect(sprecher_typ,"Präsident|Präsidentin") ~ str_remove(sprecher,sprecher_typ) %>% str_trim(),
+    #   TRUE ~ str_trim(sprecher)
+    # )) %>%
+    # mutate(sprecher = str_remove(sprecher, "^in ")) %>%
     mutate(sprecher_typ = str_replace_all(sprecher_typ,"rätin","rat")) %>%
     mutate(sprecher_typ = str_replace_all(sprecher_typ,"dentin","dent"))
   
@@ -673,6 +674,22 @@ prepare_pdf_data <- function(pdf_link){
   return(full_tago_data)
   
 }
+
+
+tago_data <- pdftools::pdf_data("local_data/Sitzung vom 22. Oktober 2025.pdf", font_info = T)
+
+# Add page variable
+tago_data <- lapply(seq_along(tago_data), function(i){
+  tago_data[[i]]$page <- i
+  return(tago_data[[i]])
+})
+
+
+# bind rows and add the separator
+pdf_data_text <- tago_data %>%
+  bind_rows() %>%
+  mutate(sep = ifelse(space," ","\n")) %>%
+  mutate(text_string = paste0(text,sep))
 
 
 
