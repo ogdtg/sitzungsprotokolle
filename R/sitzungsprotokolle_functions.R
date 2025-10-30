@@ -676,21 +676,6 @@ prepare_pdf_data <- function(pdf_link){
 }
 
 
-tago_data <- pdftools::pdf_data("local_data/Sitzung vom 22. Oktober 2025.pdf", font_info = T)
-
-# Add page variable
-tago_data <- lapply(seq_along(tago_data), function(i){
-  tago_data[[i]]$page <- i
-  return(tago_data[[i]])
-})
-
-
-# bind rows and add the separator
-pdf_data_text <- tago_data %>%
-  bind_rows() %>%
-  mutate(sep = ifelse(space," ","\n")) %>%
-  mutate(text_string = paste0(text,sep))
-
 
 
 get_sitzungsprotokolle <- function(pdf_df){
