@@ -271,7 +271,7 @@ prepare_abstimmung_pdf <- function(url){
   
   
   traktandum <- pdf_data_abst %>% 
-    filter(font_name==traktandum_font) %>% 
+    filter(str_detect(font_name,"Arial-BoldMT")) %>% 
     filter(font_size==traktandum_size) %>% 
     filter(y<200) %>% 
     pull(text) %>% 

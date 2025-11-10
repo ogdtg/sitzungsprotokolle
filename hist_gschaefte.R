@@ -169,7 +169,7 @@ kennung_df <- readRDS("/r-proj/stat/pol/sitzungsprotokolle/vars/kennung.rds")
 missing_sachbegriff <- list()  # Liste für Fälle, in denen Sachbegriff nicht gefunden wird
 vorstoesser_list <- list()     # Liste der Vorstösser:innen (Unterzeichner:innen)
 geschaefte <- list()           # Liste der verarbeiteten Geschäfte
-
+not_on_greko <- list()
 # Iteriere über alle Akten (Legislaturperioden)
 for (elem in akten) {
   print(elem[["FSCIBIS@15.1400:title"]])  # Ausgabe der aktuellen Legislatur
@@ -186,19 +186,20 @@ for (elem in akten) {
   }
   
   # Kürze Legislatur auf Jahr (z. B. "1999")
-  leg_short <- stringr::str_extract(legislatur, "^\\d\\d\\d\\d")
+  leg_full <- stringr::str_extract(legislatur, "^\\d\\d\\d\\d")
   
   # Nur alte Legislaturen vor 2005 berücksichtigen
-  if (as.numeric(leg_short) > 2004) {
+  if (as.numeric(leg_full) > 2004) {
     next
   }
   
   # Kürze Bezeichnung auf zweistellige Jahreszahl (z. B. "99")
-  if (str_starts(leg_short, "19")) {
-    leg_short <- leg_short
-  } else {
-    leg_short <- stringr::str_extract(leg_short, "\\d\\d$")
-  }
+  # if (str_starts(leg_short, "19")) {
+  #   leg_short <- leg_short
+  # } else {
+  #   leg_short <- stringr::str_extract(leg_short, "\\d\\d$")
+  # }
+  leg_short <- stringr::str_extract(leg_full, "\\d\\d$")
   
   # -------------------------------------------------------
   # Iteriere über alle Geschäfte innerhalb einer Legislatur
@@ -212,6 +213,7 @@ for (elem in akten) {
     laufnummer <- doc[["FSCIBIS@15.1400:sequentialnumber"]]
     grg_nummer <- doc[["COOELAK@1.1001:ordinal"]]
     
+
     # Geschäftstyp (z. B. 70 → Interpellation)
     geschaftsart_num <- doc[["FSCIBIS@15.1400:businesstypegr"]]
     geschaftsart <- gesh_art_df$bezeichnung[which(gesh_art_df$code == geschaftsart_num)]
@@ -233,7 +235,15 @@ for (elem in akten) {
     
     # Erzeuge eindeutige Geschäftsnummer (z. B. "99/MO 23/123")
     geschaeftsnummer <- paste0(leg_short, "/", kennung, " ", laufnummer, "/", grg_nummer)
-    print(geschaeftsnummer)
+    # 
+    if (doc[["FSCIBIS@15.1400:confidential"]] != "false"){
+      print("CONFIDENTIAL")
+      print(geschaeftsnummer)
+
+    }
+    
+
+    
     
     # -----------------------------------------------------
     # Verarbeite Unterzeichner:innen (Vorstösser)
@@ -284,8 +294,18 @@ for (elem in akten) {
       bemerkungen = bemerkungen
     )
     
+    
+    check <-httr::GET(glue::glue("https://grgeko.tg.ch/view?legislatur={leg_full}&grgnum={grg_nummer}"))
+    if (httr::status_code(check)!=200){
+      print(httr::status_code(check))
+      not_on_greko[[geschaeftsnummer]] <- bind_rows(temp_list)
+      vorstoesser_list[[geschaeftsnummer]] <- NULL
+    } else {
+      geschaefte[[geschaeftsnummer]] <- bind_rows(temp_list)
+    }
+    
     # Füge Geschäft zur Gesamtliste hinzu
-    geschaefte[[geschaeftsnummer]] <- bind_rows(temp_list)
+    
     
   } # Ende Schleife über Unterlagen (doc)
   
@@ -296,6 +316,14 @@ for (elem in akten) {
 # ---------------------------------------------------------
 
 geschaefte_df <- geschaefte %>% 
+  bind_rows() %>% 
+  mutate(status = "abgeschlossen") %>% 
+  separate(sachbegriff_num, into = c("sachbegriff_grgeko_1","sachbegriff_grgeko_2"),sep = ";") %>% 
+  mutate_at(vars(datum_geschaeft_eingang,datum_geschaeft_abschluss),~str_extract(.x,"\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d") %>% dmy()) %>% 
+  mutate_if(is.character,~ str_replace_all(.x,'"',"'")) %>% 
+  mutate_if(is.character,~ str_replace_all(.x,"',","' ,"))
+
+not_on_greko <- not_on_greko %>% 
   bind_rows() %>% 
   mutate(status = "abgeschlossen") %>% 
   separate(sachbegriff_num, into = c("sachbegriff_grgeko_1","sachbegriff_grgeko_2"),sep = ";") %>% 
