@@ -331,7 +331,9 @@ get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschae
     filter(!str_detect(name,"Präsenz Abend$")) |> 
     filter(!str_detect(name,"Kurzprotokoll$")) |> 
     filter(!str_detect(name,"Tagesordnung$")) |> 
-    filter(!str_detect(name,"/TO ")) 
+    filter(!str_detect(name,"/TO ")) %>% 
+    filter(!str_detect(name,"/TO_")) 
+  
     
   
   
