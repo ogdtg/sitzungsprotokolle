@@ -69,12 +69,23 @@ get_category_id <- function(loaded_cat=NULL, url = "https://parlament.tg.ch/prot
 #' @export
 #'
 #' @examples
-get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunterlagen.html/16604", from_date = NULL){
+get_pdf_list <- function(url = "https://parlament.tg.ch/protokolle/sitzungsunterlagen.html/16604", from_date =  Sys.Date()-months(4)){
   
   
   # Legislatur
   cat1 <- get_category_id(url = url) %>% 
     mutate_if(is.character, ~str_remove_all(.x, "Ebene \\d+:") %>% str_trim())
+  
+  cat1_1 <- cat1 %>% 
+    filter(str_detect(text,"\\d\\d\\d\\d-\\d\\d-\\d\\d")) %>% 
+    mutate(date = as.Date(str_extract(text,"\\d\\d\\d\\d-\\d\\d-\\d\\d"))) %>% 
+    filter(date >= from_date)
+  
+  cat1_2 <- cat1 %>% 
+    filter(!str_detect(text,"\\d\\d\\d\\d-\\d\\d-\\d\\d")) 
+  
+  cat1 <- cat1_1 %>% 
+    bind_rows(cat1_2)
   
   loaded_cat_list <- lapply(cat1$id,dmsLoadCategory)
   
