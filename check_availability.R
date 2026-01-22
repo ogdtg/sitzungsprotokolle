@@ -33,28 +33,31 @@ cat("=== DNS inside container (system) ===\n")
 try(system(paste("getent hosts", host), intern = FALSE), silent = TRUE)
 cat("\n")
 
-cat("=== 1) Fetch HTML with httr (verbose) ===\n")
-
 cat("=== 1) Fetch HTML with curl (connect timeout + retries + verbose) ===\n")
 
 ua <- "Mozilla/5.0 (compatible; GitHubActionsAvailabilityCheck/1.0)"
 
-fetch_html_once <- function(ipresolve_value, label) {
+fetch_html_once <- function(ipresolve_const, label) {
   cat("\n--- Attempt HTML fetch using ", label, " ---\n", sep = "")
   h <- curl::new_handle()
+  
+  # Keep options minimal + portable
   curl::handle_setopt(
     h,
     useragent = ua,
-    connecttimeout = 30,  # important: connect timeout
-    timeout = 120,        # overall timeout
+    connecttimeout = 30,
+    timeout = 120,
     followlocation = 1,
     maxredirs = 10,
     verbose = TRUE,
-    ipresolve = ipresolve_value
+    ipresolve = ipresolve_const
   )
   
-  # fetch raw bytes then convert to text
-  raw <- tryCatch(curl::curl_fetch_memory(url_mitglieder, handle = h), error = function(e) e)
+  raw <- tryCatch(
+    curl::curl_fetch_memory(url_mitglieder, handle = h),
+    error = function(e) e
+  )
+  
   if (inherits(raw, "error")) {
     cat("HTML fetch ERROR (", label, "): ", conditionMessage(raw), "\n", sep = "")
     return(NULL)
@@ -66,6 +69,7 @@ fetch_html_once <- function(ipresolve_value, label) {
   cat("\n")
   
   if (raw$status_code >= 400) return(NULL)
+  
   txt <- rawToChar(raw$content)
   cat("HTML size (chars): ", nchar(txt), "\n", sep = "")
   txt
@@ -76,16 +80,16 @@ retry <- function(fun, tries = 5) {
     cat("\n== Try ", i, "/", tries, " ==\n", sep = "")
     out <- fun()
     if (!is.null(out)) return(out)
-    Sys.sleep(min(30, 2^i))  # backoff: 2,4,8,16,30
+    Sys.sleep(min(30, 2^i))
   }
   NULL
 }
 
-# Try IPv6 then IPv4, each with retries
-html_text <- retry(function() fetch_html_once(6, "IPv6"), tries = 3)
+# Use curl constants (portable)
+html_text <- retry(function() fetch_html_once(curl::CURL_IPRESOLVE_V6, "IPv6"), tries = 3)
 if (is.null(html_text)) {
   cat("\nIPv6 failed repeatedly; switching to IPv4.\n")
-  html_text <- retry(function() fetch_html_once(4, "IPv4"), tries = 3)
+  html_text <- retry(function() fetch_html_once(curl::CURL_IPRESOLVE_V4, "IPv4"), tries = 3)
 }
 
 if (is.null(html_text)) {
@@ -93,10 +97,8 @@ if (is.null(html_text)) {
   quit(status = 2)
 }
 
-# If you still want to print the final URL, keep it simple:
-final_url <- url_mitglieder
-cat("Final URL (if available): ", final_url, "\n", sep = "")
-cat("\n")
+cat("Final URL: ", url_mitglieder, "\n\n", sep = "")
+
 
 
 cat("\n--- HTML response summary ---\n")
