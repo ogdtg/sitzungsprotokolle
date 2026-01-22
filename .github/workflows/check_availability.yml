@@ -1,0 +1,28 @@
+name: Check availability (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: florenz2/pdf_scrape:latest_
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Extra network diagnostics from the runner/container
+      - name: Network diagnostics (curl)
+        run: |
+          set -x
+          echo "DNS:"
+          (getent hosts parlament.tg.ch || true)
+          echo "IPv4 HEAD:"
+          (curl -4 -v -I --max-time 25 https://parlament.tg.ch/ || true)
+          echo "IPv6 HEAD:"
+          (curl -6 -v -I --max-time 25 https://parlament.tg.ch/ || true)
+
+      - name: Run R availability check
+        run: |
+          Rscript check_availability.R
