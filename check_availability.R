@@ -33,24 +33,21 @@ cat("=== DNS inside container (system) ===\n")
 try(system(paste("getent hosts", host), intern = FALSE), silent = TRUE)
 cat("\n")
 
-cat("=== 1) Fetch HTML with curl (connect timeout + retries + verbose) ===\n")
+cat("=== 1) Fetch HTML with curl (retries + verbose) ===\n")
 
 ua <- "Mozilla/5.0 (compatible; GitHubActionsAvailabilityCheck/1.0)"
 
-fetch_html_once <- function(ipresolve_const, label) {
-  cat("\n--- Attempt HTML fetch using ", label, " ---\n", sep = "")
+fetch_html_once <- function() {
   h <- curl::new_handle()
   
-  # Keep options minimal + portable
   curl::handle_setopt(
     h,
     useragent = ua,
-    connecttimeout = 30,
-    timeout = 120,
+    connecttimeout = 30,   # key: avoid 10s connect timeout
+    timeout = 120,         # total timeout
     followlocation = 1,
     maxredirs = 10,
-    verbose = TRUE,
-    ipresolve = ipresolve_const
+    verbose = TRUE         # VERY important
   )
   
   raw <- tryCatch(
@@ -59,7 +56,7 @@ fetch_html_once <- function(ipresolve_const, label) {
   )
   
   if (inherits(raw, "error")) {
-    cat("HTML fetch ERROR (", label, "): ", conditionMessage(raw), "\n", sep = "")
+    cat("HTML fetch ERROR: ", conditionMessage(raw), "\n", sep = "")
     return(NULL)
   }
   
@@ -80,26 +77,19 @@ retry <- function(fun, tries = 5) {
     cat("\n== Try ", i, "/", tries, " ==\n", sep = "")
     out <- fun()
     if (!is.null(out)) return(out)
-    Sys.sleep(min(30, 2^i))
+    Sys.sleep(min(30, 2^i))  # exponential backoff
   }
   NULL
 }
 
-# Use curl constants (portable)
-html_text <- retry(function() fetch_html_once(curl::CURL_IPRESOLVE_V6, "IPv6"), tries = 3)
-if (is.null(html_text)) {
-  cat("\nIPv6 failed repeatedly; switching to IPv4.\n")
-  html_text <- retry(function() fetch_html_once(curl::CURL_IPRESOLVE_V4, "IPv4"), tries = 3)
-}
+html_text <- retry(fetch_html_once, tries = 5)
 
 if (is.null(html_text)) {
-  cat("\nStopping: couldn't fetch HTML after retries on IPv6 and IPv4.\n")
+  cat("\nStopping: couldn't fetch HTML after retries.\n")
   quit(status = 2)
 }
 
 cat("Final URL: ", url_mitglieder, "\n\n", sep = "")
-
-
 
 cat("\n--- HTML response summary ---\n")
 cat("Status: ", status_code(res_html), "\n", sep = "")
