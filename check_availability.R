@@ -60,7 +60,8 @@ if (inherits(res_html, "error")) {
 
 cat("\n--- HTML response summary ---\n")
 cat("Status: ", status_code(res_html), "\n", sep = "")
-cat("Final URL (if available): ", res_html$url %||% "(unknown)", "\n", sep = "")
+final_url <- if (!is.null(res_html$url)) res_html$url else "(unknown)"
+cat("Final URL (if available): ", final_url, "\n", sep = "")
 cat("Headers:\n")
 print(headers(res_html))
 cat("\n")
