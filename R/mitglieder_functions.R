@@ -178,12 +178,14 @@ crawl_mitglieder_page <- function(url = "https://parlament.tg.ch/mitglieder/mitg
 get_mitglieder <- function(file="mitglieder.pdf"){
   # Download
   download_mitglieder_pdf()
-  
+  message("Mitglieder File downloaded")
   # Dataset
   mitglieder_list <- create_mitglieder_df(file)
+  message("mitglieder_list created")
   
   # Crawl Page
   scrape_mg <- crawl_mitglieder_page()
+  message("page scraped")
   
   
   mitglieder <- mitglieder_list$data %>% 
