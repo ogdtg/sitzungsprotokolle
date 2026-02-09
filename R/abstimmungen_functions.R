@@ -322,7 +322,7 @@ prepare_abstimmung_pdf <- function(url){
       })
     })
   })
-  
+  abst_data$nr <- as.character(abst_data$nr )
   abst_data$url <- url
   
   return(abst_data)
@@ -350,7 +350,9 @@ get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschae
   
   if (nrow(pdf_df_abst)>0){
     abstimmungen_old <- readRDS("data/abstimmungen_ogd.rds") %>% 
-      mutate(datum = as.Date(datum))
+      mutate(datum = as.Date(datum)) |> 
+      mutate(nr = as.character(nr))
+    
     
     abstimmungen_new <- lapply(pdf_df_abst$pdf, prepare_abstimmung_pdf) %>%
       bind_rows() %>%
