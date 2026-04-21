@@ -35,7 +35,13 @@ scrape_grgeko_pure <- function(current_legislatur,old_legislatur){
     pull(grg_nummer) |> 
     as.numeric() 
   
-  for (legislatur in c(old_legislatur,current_legislatur)){
+  if (length(grg_num_old_leg)==0){ # no pendent in old legi
+    leg_vec <- current_legislatur
+  } else {
+    leg_vec <- c(old_legislatur,current_legislatur)
+  }
+  
+  for (legislatur in leg_vec){
     # Counter für Nummern ohne Dokument (relevant für Abbruchbedingung)
     nodoc_counter <- 0
     if (legislatur == old_legislatur){
