@@ -37,8 +37,8 @@ test_connection <- function(base_url="https://tg.gemeinde.ch/api/geschaeft/searc
 
 
 pw <- Sys.getenv("PW_GR_API") |>
-  (\(x) gsub('\\\\"', '"', x, fixed = TRUE))() |>  # \" -> "
-  (\(x) gsub("\\\\", "\\", x, fixed = TRUE))()      # \\ -> \
+  (\(x) gsub("\\\\", "\\", x, fixed = TRUE))() |>  # \\ -> \
+  (\(x) gsub('\\"', '"', x, fixed = TRUE))()         # \" -> "
 
 
 codes <- utf8ToInt(pw)
