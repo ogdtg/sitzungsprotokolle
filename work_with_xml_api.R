@@ -37,8 +37,7 @@ test_connection <- function(base_url="https://tg.gemeinde.ch/api/geschaeft/searc
 
 
 pw <- Sys.getenv("PW_GR_API") |>
-  stringr::str_replace_all("\\\\", "\\") |>
-  stringr::str_replace_all('\\"', '"')
+  stringr::str_replace_all("\\\\", "\\") 
 
 Sys.setenv(PW_GR_API = pw)
 
