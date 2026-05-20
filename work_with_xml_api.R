@@ -28,6 +28,15 @@ fetch_page <- function(base_url, s, page_size = 1000) {
 }
 
 
+test_connection <- function(base_url="https://tg.gemeinde.ch/api/geschaeft/searchdetails/"){
+  url <- paste0(base_url, "?q=seq>0&l=de-CH&s=", 0, "&m=", 10)
+  res <- url |>
+    httr::GET(auth())
+  print(res)
+}
+
+test_connection()
+
 get_geschaeft_base <- function(hits,ns){
   df <- map_dfr(hits, ~ {
     g <- xml_find_first(.x, "gs:Geschaeft", ns)
