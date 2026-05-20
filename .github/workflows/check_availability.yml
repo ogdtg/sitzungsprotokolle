@@ -1,28 +1,33 @@
-name: Check availability (manual)
+name: Crawl protocols 
 
 on:
   workflow_dispatch:
 
+
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
     container: florenz2/pdf_scrape:latest_
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      # Extra network diagnostics from the runner/container
-      - name: Network diagnostics (curl)
-        run: |
-          set -x
-          echo "DNS:"
-          (getent hosts parlament.tg.ch || true)
-          echo "IPv4 HEAD:"
-          (curl -4 -v -I --max-time 25 https://parlament.tg.ch/ || true)
-          echo "IPv6 HEAD:"
-          (curl -6 -v -I --max-time 25 https://parlament.tg.ch/ || true)
 
-      - name: Run R availability check
-        run: |
-          Rscript check_availability.R
+    - name: Execute script 
+      env:
+        PUSHKEY: ${{ secrets.PUSHKEY }}
+        PAT: ${{ secrets.PAT }}
+        USER_GR_API: ${{ secrets.USER_GR_API }}
+        PW_GR_API: ${{ secrets.PW_GR_API }}
+      run: |
+        Rscript work_with_xml_api.R
+
+    - name: GIT Commit Build Artifacts (coverage, dist, devdist, docs)
+      run: |
+        git config --global --add safe.directory /__w/sitzungsprotokolle/sitzungsprotokolle
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "username@users.noreply.github.com"
+        git add .
+        git commit -m "check for new protocol" || echo "Nothing to commit"
+        git push

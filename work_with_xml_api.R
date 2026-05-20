@@ -1,13 +1,24 @@
+packages <- c("xml2", "tibble", "purrr", "dplyr")
+
+installed <- rownames(installed.packages())
+missing <- packages[!packages %in% installed]
+
+if (length(missing) > 0) install.packages(missing)
+
 library(xml2)
 library(tibble)
 library(purrr)
-
+library(dplyr)
+library(httr)
 auth <- function(){
-  httr::authenticate("demo","demo")
+  httr::authenticate(Sys.getenv("USER_GR_API"),Sys.getenv("PW_GR_API"))
 }
 
 
 
+auth2 <- function(){
+  httr::authenticate("demo","demo")
+}
 
 fetch_page <- function(base_url, s, page_size = 1000) {
   url <- paste0(base_url, "?q=seq>0&l=de-CH&s=", s, "&m=", page_size)
@@ -488,15 +499,84 @@ behoerdenmandat <- get_behoerdenmandat()
 
 # Geschäfte
 gescaeft <- get_geschaeft()
+
+geschaeft_ogd <- gescaeft$geschaefte |> 
+  left_join(gescaeft$zustaendigkeit,join_by(guid)) |> 
+  rename(datum_geschaeft_eingang = "eingangsdatum",
+         datum_geschaeft_abschluss = "abschlussdatum",
+         status = "geschaeftsstatus",
+         geschaftstitel = "titel",
+         sachbegriff_grgeko_1 = "themenbereich",
+         departement = "zustaendigkeit_name",
+         grg_nummer = "grg_nr",
+         geschaftsart="geschaeftsart",
+         anzahl_erstunterzeichnende = "anzahl_vorstoesser",
+         total_unterzeichnende = "anzahl_unterzeichnende") |> 
+  select(datum_geschaeft_eingang,status,datum_geschaeft_abschluss,geschaeftsnummer,grg_nummer,geschaftstitel,geschaftsart,sachbegriff_grgeko_1,departement,anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende) |> 
+  mutate(across(where(is.character), ~ na_if(.x, ""))) |> 
+  mutate(across(c(datum_geschaeft_eingang,datum_geschaeft_abschluss),lubridate::dmy))
+
 # sk-stat-140 -> Departement kann über zuständigkeit gejoint werden
 
 # Mitglieder GR
 kontakt <- get_kontakt()
+
+mitglieder_ogd <- kontakt$kontakt |> 
+  filter(organisation=="Grosser Rat") |> 
+  left_join(kontakt$adresse |> 
+              filter(adressart=="Privatadresse"),join_by(guid)) |> 
+  distinct() |> 
+  rename(nr = "personalnummer",
+         wohnort = "ort",
+         wahlbezirk = "wahlkreis") |>
+  left_join(kontakt$behoerdenmandat |> 
+              filter(gremium_name=="Grosser Rat",
+                     funktion=="Mitglied"),join_by(guid)) |> 
+  mutate(eintritt = as.numeric(stringr::str_extract(dauer,"\\d\\d\\d\\d"))) |> 
+  group_by(guid) |> 
+  mutate(eintritt = min(eintritt)) |> 
+  ungroup() |> 
+  select(-c(dauer,mandat_guid)) |> 
+  distinct() |> 
+  mutate(img = glue::glue("https://tg.gemeinde.ch/de/mitglieder/bild.php?did={guid}-1664&version=1&typ=jpg")) |> 
+  select(nr,name,vorname,geburtsdatum,geschlecht,beruf,wohnort,wahlbezirk,partei,fraktion,eintritt,img) |> 
+  mutate(geburtsdatum=lubridate::dmy(geburtsdatum)) 
+  
+
 # sk-stat-138 -> alle Variablen enthalten, zusätzlich Interessenbindungen und Grmeine/Organisationen
 
 # Vorstoesser aus sitzung
 
+erstunterzeichner <- gescaeft$erstunterzeichner |> 
+  select(guid,benutzer_guid) |> 
+  left_join(kontakt$kontakt,join_by(benutzer_guid==guid)) |> 
+  select(guid,nr = personalnummer,nachname = name,vorname,partei) |> 
+  mutate(erstunterzeichner = "ja")
+
+
+mitunterzeichner <- gescaeft$mitvorstoesser |> 
+  select(guid,benutzer_guid) |> 
+  left_join(kontakt$kontakt,join_by(benutzer_guid==guid)) |> 
+  select(guid,nr = personalnummer,nachname = name,vorname,partei) |> 
+  mutate(erstunterzeichner = "nein")
+
+
+unterzeichner <- erstunterzeichner |> 
+  bind_rows(mitunterzeichner)
+
+vorstoesser <- gescaeft$geschaefte |> 
+  select(guid,titel,geschaeftsnummer) |> 
+  filter(guid %in% unterzeichner$guid) |> 
+  left_join( unterzeichner, join_by(guid)) |> 
+  select(nr,nachname,vorname,partei,geschaeftsnummer,geschaeftstitel = titel,erstunterzeichner)
+
+
+
 # Alles aus Dokumenten kann über Sitzungen abgezogen werden, Metadaten über Sitzung
+saveRDS(vorstoesser,"api_data/vorstoesser.rds")
+saveRDS(mitglieder_ogd,"api_data/mitglieder.rds")
+saveRDS(geschaeft_ogd,"api_data/geschaeft.rds")
+
 
 # Abstimmungen sind bei den Geschäften 
 # Sitzungs gedöns bei Sitzungen
