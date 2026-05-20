@@ -41,10 +41,6 @@ pw <- Sys.getenv("PW_GR_API") |>
   (\(x) gsub('\\"', '"', x, fixed = TRUE))()         # \" -> "
 
 
-codes <- utf8ToInt(pw)
-which(codes == 92)  # positions of \
-which(codes == 34)  # positions of "
-
 Sys.setenv(PW_GR_API = pw)
 
 
@@ -528,7 +524,7 @@ behoerdenmandat <- get_behoerdenmandat()
 gescaeft <- get_geschaeft()
 
 geschaeft_ogd <- gescaeft$geschaefte |> 
-  left_join(gescaeft$zustaendigkeit,join_by(guid)) |> 
+  left_join(gescaeft$zustaendigkeit,"guid") |> 
   rename(datum_geschaeft_eingang = "eingangsdatum",
          datum_geschaeft_abschluss = "abschlussdatum",
          status = "geschaeftsstatus",
@@ -551,14 +547,14 @@ kontakt <- get_kontakt()
 mitglieder_ogd <- kontakt$kontakt |> 
   filter(organisation=="Grosser Rat") |> 
   left_join(kontakt$adresse |> 
-              filter(adressart=="Privatadresse"),join_by(guid)) |> 
+              filter(adressart=="Privatadresse"),"guid") |> 
   distinct() |> 
   rename(nr = "personalnummer",
          wohnort = "ort",
          wahlbezirk = "wahlkreis") |>
   left_join(kontakt$behoerdenmandat |> 
               filter(gremium_name=="Grosser Rat",
-                     funktion=="Mitglied"),join_by(guid)) |> 
+                     funktion=="Mitglied"),"guid") |> 
   mutate(eintritt = as.numeric(stringr::str_extract(dauer,"\\d\\d\\d\\d"))) |> 
   group_by(guid) |> 
   mutate(eintritt = min(eintritt)) |> 
@@ -576,14 +572,14 @@ mitglieder_ogd <- kontakt$kontakt |>
 
 erstunterzeichner <- gescaeft$erstunterzeichner |> 
   select(guid,benutzer_guid) |> 
-  left_join(kontakt$kontakt,join_by(benutzer_guid==guid)) |> 
+  left_join(kontakt$kontakt,by = c("benutzer_guid"="guid")) |> 
   select(guid,nr = personalnummer,nachname = name,vorname,partei) |> 
   mutate(erstunterzeichner = "ja")
 
 
 mitunterzeichner <- gescaeft$mitvorstoesser |> 
   select(guid,benutzer_guid) |> 
-  left_join(kontakt$kontakt,join_by(benutzer_guid==guid)) |> 
+  left_join(kontakt$kontakt,by = c("benutzer_guid"="guid")) |> 
   select(guid,nr = personalnummer,nachname = name,vorname,partei) |> 
   mutate(erstunterzeichner = "nein")
 
@@ -594,7 +590,7 @@ unterzeichner <- erstunterzeichner |>
 vorstoesser <- gescaeft$geschaefte |> 
   select(guid,titel,geschaeftsnummer) |> 
   filter(guid %in% unterzeichner$guid) |> 
-  left_join( unterzeichner, join_by(guid)) |> 
+  left_join( unterzeichner, "guid") |> 
   select(nr,nachname,vorname,partei,geschaeftsnummer,geschaeftstitel = titel,erstunterzeichner)
 
 
