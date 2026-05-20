@@ -34,7 +34,9 @@ test_connection <- function(base_url="https://tg.gemeinde.ch/api/geschaeft/searc
     httr::GET(auth())
   print(res)
 }
-
+print("PW correct length?")
+nchar(Sys.getenv("PW_GR_API"))
+grepl('"',Sys.getenv("PW_GR_API"))
 test_connection()
 
 get_geschaeft_base <- function(hits,ns){
