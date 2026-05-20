@@ -599,7 +599,7 @@ vorstoesser <- gescaeft$geschaefte |>
 saveRDS(vorstoesser,"api_data/vorstoesser.rds")
 saveRDS(mitglieder_ogd,"api_data/mitglieder.rds")
 saveRDS(geschaeft_ogd,"api_data/geschaeft.rds")
-
+saveRDS(Sys.Date(),"api_data/placeholder.rds")
 
 # Abstimmungen sind bei den Geschäften 
 # Sitzungs gedöns bei Sitzungen

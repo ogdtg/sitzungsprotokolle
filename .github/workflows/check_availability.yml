@@ -1,4 +1,4 @@
-name: Crawl protocols 
+name: XML API run 
 
 on:
   workflow_dispatch:
