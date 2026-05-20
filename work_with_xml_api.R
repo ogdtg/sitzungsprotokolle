@@ -34,6 +34,14 @@ test_connection <- function(base_url="https://tg.gemeinde.ch/api/geschaeft/searc
     httr::GET(auth())
   print(res)
 }
+
+
+pw <- Sys.getenv("PW_GR_API") |>
+  stringr::str_replace_all("\\\\", "\\") |>
+  stringr::str_replace_all('\\"', '"')
+
+Sys.setenv(pw,"PW_GR_API")
+
 print("PW correct length?")
 nchar(Sys.getenv("PW_GR_API"))
 grepl('"',Sys.getenv("PW_GR_API"))
