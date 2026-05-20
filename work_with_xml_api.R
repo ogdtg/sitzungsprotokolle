@@ -40,11 +40,12 @@ pw <- Sys.getenv("PW_GR_API") |>
   stringr::str_replace_all("\\\\", "\\") |>
   stringr::str_replace_all('\\"', '"')
 
-Sys.setenv(pw,"PW_GR_API")
+Sys.setenv(PW_GR_API = pw)
 
 print("PW correct length?")
-nchar(Sys.getenv("PW_GR_API"))
-grepl('"',Sys.getenv("PW_GR_API"))
+print(nchar(Sys.getenv("PW_GR_API")))
+print(grepl('"', Sys.getenv("PW_GR_API")))
+
 test_connection()
 
 get_geschaeft_base <- function(hits,ns){
