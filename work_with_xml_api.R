@@ -65,7 +65,7 @@ dokumente_full_mod <- dokumente_full |>
   bind_rows(dokumente_ogd) |> 
   mutate(doc_link = case_when(
     stringr::str_detect(doc_link,"https://grgeko.tg.ch") ~ "https://archivportal.tg.ch/",
-    TRUE = doc_link
+    TRUE ~ doc_link
   )) |> 
   select(-lg)
 
