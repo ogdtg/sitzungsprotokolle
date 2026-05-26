@@ -60,14 +60,14 @@ dokumente_full <-readRDS("data/dokumente.rds") #|>
   # mutate(lg = as.numeric(stringr::str_extract(geschaeftsnummer,"\\d\\d"))) |> 
   # filter(lg<16)
 
-dokumente_full_mod <- dokumente_full |> 
-  anti_join(dokumente_ogd, by = c("geschaeftsnummer","doc_title")) |> 
-  bind_rows(dokumente_ogd) |> 
-mutate(doc_link = ifelse(
-  stringr::str_detect(doc_link, "https://grgeko.tg.ch"),
-  "https://archivportal.tg.ch/",
-  doc_link
-)) 
+dokumente_full_mod <- dokumente_full |>
+  anti_join(dokumente_ogd, by = c("geschaeftsnummer", "doc_title")) |>
+  bind_rows(dokumente_ogd) |>
+  mutate(doc_link = ifelse(
+    stringr::str_detect(doc_link, "https://grgeko.tg.ch"),
+    "https://archivportal.tg.ch/",
+    doc_link
+  )) 
 
 # Daten speichern
 saveRDS(dokumente_full_mod,"data/dokumente.rds")
