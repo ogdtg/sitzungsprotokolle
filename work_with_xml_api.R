@@ -78,8 +78,8 @@ write.table(dokumente_full_mod, file = "data/dokumente.csv", quote = T, sep = ",
 
 
 # Abstimmungen
-eval(parse("R/load_packages.R", encoding="UTF-8"))
-eval(parse("R/abstimmungen_functions.R", encoding="UTF-8"))
+# eval(parse("R/load_packages.R", encoding="UTF-8"))
+# eval(parse("R/abstimmungen_functions.R", encoding="UTF-8"))
 
 pdf_df_abst <- sitzung$dokumente |> 
   filter(str_detect(file_name,"Trakt\\.")) |> 
