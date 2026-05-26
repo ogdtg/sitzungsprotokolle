@@ -2,7 +2,8 @@
 eval(parse("R/load_packages.R", encoding="UTF-8"))
 eval(parse("R/abstimmungen_functions.R", encoding="UTF-8"))
 eval(parse("R/xml_functions.R", encoding="UTF-8"))
-
+packageVersion("pdftools")
+pdftools::poppler_config()
 
 
 # Alles aus Dokumenten kann über Sitzungen abgezogen werden, Metadaten über Sitzung
