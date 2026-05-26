@@ -169,25 +169,25 @@ crawl_pdf <- function(url){
   
   path <- tempfile(fileext = ".pdf")
   
-  # Send the GET request and handle the response
   response <- GET(url)
   
-  # Check if the request was successful (status code 200)
   if (status_code(response) == 200) {
-    # Save the content as a binary file to avoid corruption
     writeBin(content(response, "raw"), path)
   } else {
-    stop("Failed to download PDF: ", status_code(response),"\n",rawToChar(content(response)))
+    stop("Failed to download PDF: ", status_code(response), "\n", rawToChar(content(response)))
   }
-  
-  
-  # Download the PDF file
-  # response <- GET(url, write_disk(path , overwrite = TRUE))
   
   df_list <- pdftools::pdf_data(path, font_info = T)
   unlink(path)
   
-  lapply(seq_along(df_list), function(x){
+  # Filter out pages where poppler degraded the output to a list
+  valid_pages <- which(sapply(df_list, is.data.frame))
+  
+  if (length(valid_pages) == 0) {
+    stop("PDF enthält keine verwertbaren Seiten: ", url)
+  }
+  
+  lapply(valid_pages, function(x){
     df_list[[x]]$page <- x
     df_list[[x]]
   }) %>% bind_rows()
