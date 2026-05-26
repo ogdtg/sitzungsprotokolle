@@ -634,7 +634,7 @@ vorstoesser <- gescaeft$geschaefte |>
   select(guid,titel,geschaeftsnummer) |> 
   filter(guid %in% unterzeichner$guid) |> 
   left_join( unterzeichner, "guid") |> 
-  select(nr,nachname,vorname,partei,geschaeftsnummer,geschaeftstitel = titel,erstunterzeichner)
+  select(nr,nachname,vorname,partei,geschaeftsnummer,titel,erstunterzeichner)
 
 
 sitzungsdokumente <- sitzung$dokumente |> 
@@ -686,8 +686,7 @@ write.table(mitglieder_ogd, file = "data/gr_mitglieder.csv", quote = T, sep = ",
 
 # Vorstösser
 # Geschäfte 
-vorstoesser_full <-readRDS("data/vorstoesser.rds")
-
+vorstoesser_full <-readRDS("data/vorstoesser.rds") 
 vorstoesser_full_mod <- vorstoesser_full |> 
   anti_join(vorstoesser, by = c("geschaeftsnummer")) |> 
   bind_rows(vorstoesser)
@@ -699,10 +698,10 @@ write.table(vorstoesser_full_mod, file = "data/vorstoesser.csv", quote = T, sep 
 
 # Dokumente
 # Geschäfte 
-dokumente_full <-readRDS("data/dokumente.rds") |> 
+dokumente_full <-readRDS("data/dokumente.rds") #|> 
   # rename(geschaeftstitel = titel) |> 
-  mutate(lg = as.numeric(stringr::str_extract(geschaeftsnummer,"\\d\\d"))) |> 
-  filter(lg<16)
+  # mutate(lg = as.numeric(stringr::str_extract(geschaeftsnummer,"\\d\\d"))) |> 
+  # filter(lg<16)
 
 dokumente_full_mod <- dokumente_full |> 
   anti_join(dokumente_ogd, by = c("geschaeftsnummer","doc_title")) |> 
@@ -710,7 +709,8 @@ dokumente_full_mod <- dokumente_full |>
   mutate(doc_link = case_when(
     stringr::str_detect(doc_link,"https://grgeko.tg.ch") ~ "https://archivportal.tg.ch/",
     .default = doc_link
-  ))
+  )) |> 
+  select(-lg)
 
 # Daten speichern
 saveRDS(dokumente_full_mod,"data/dokumente.rds")
