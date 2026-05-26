@@ -20,75 +20,77 @@ pdftools::poppler_config()
 # Verbindung mit alten Daten
 
 # Geschäfte 
-geschaefte_full <-readRDS("data/geschaefte.rds")
-geschaefte_full <- geschaefte_full |> 
-  mutate(across(c(anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende),as.numeric)) |> 
-  mutate(datum_geschaeft_eingang=as.Date(datum_geschaeft_eingang))
+# geschaefte_full <-readRDS("data/geschaefte.rds")
+# geschaefte_full <- geschaefte_full |> 
+#   mutate(across(c(anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende),as.numeric)) |> 
+#   mutate(datum_geschaeft_eingang=as.Date(datum_geschaeft_eingang))
+# 
+# 
+# geschaefte_full_mod <- geschaefte_full |> 
+#   anti_join(geschaeft_ogd, by = c("geschaeftsnummer")) |> 
+#   bind_rows(geschaeft_ogd)
+# 
+# # Daten speichern
+# saveRDS(geschaefte_full_mod,"data/geschaefte.rds")
+# write.table(geschaefte_full_mod, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
+#             row.names = F, na="",fileEncoding = "utf-8")
+# 
+# 
+# 
+# # Mitglieder
+# saveRDS(mitglieder_ogd,"data/gr_mitglieder.rds")
+# write.table(mitglieder_ogd, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
+#             row.names = F, na="",fileEncoding = "utf-8")
+# 
+# # Vorstösser
+# # Geschäfte 
+# vorstoesser_full <-readRDS("data/vorstoesser.rds") 
+# vorstoesser_full_mod <- vorstoesser_full |> 
+#   anti_join(vorstoesser, by = c("geschaeftsnummer")) |> 
+#   bind_rows(vorstoesser)
+# 
+# # Daten speichern
+# saveRDS(vorstoesser_full_mod,"data/vorstoesser.rds")
+# write.table(vorstoesser_full_mod, file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
+#             row.names = F, na="",fileEncoding = "utf-8")
+# 
+# # Dokumente
+# # Geschäfte 
+# dokumente_full <-readRDS("data/dokumente.rds") #|> 
+#   # rename(geschaeftstitel = titel) |> 
+#   # mutate(lg = as.numeric(stringr::str_extract(geschaeftsnummer,"\\d\\d"))) |> 
+#   # filter(lg<16)
+# 
+# dokumente_full_mod <- dokumente_full |>
+#   anti_join(dokumente_ogd, by = c("geschaeftsnummer", "doc_title")) |>
+#   bind_rows(dokumente_ogd) |>
+#   mutate(doc_link = ifelse(
+#     stringr::str_detect(doc_link, "https://grgeko.tg.ch"),
+#     "https://archivportal.tg.ch/",
+#     doc_link
+#   )) 
+# 
+# # Daten speichern
+# saveRDS(dokumente_full_mod,"data/dokumente.rds")
+# write.table(dokumente_full_mod, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
+#             row.names = F, na="",fileEncoding = "utf-8")
+# 
+# 
+# 
+# 
+# # Abstimmungen
+# # eval(parse("R/load_packages.R", encoding="UTF-8"))
+# # eval(parse("R/abstimmungen_functions.R", encoding="UTF-8"))
+# 
+# pdf_df_abst <- sitzung$dokumente |> 
+#   filter(str_detect(file_name,"Trakt\\.")) |> 
+#   select(guid,file_name,url) |> 
+#   left_join(sitzung$sitzung,"guid") |> 
+#   mutate(datum = lubridate::dmy(datum)) |> 
+#   select(file_name,url,datum)
 
-
-geschaefte_full_mod <- geschaefte_full |> 
-  anti_join(geschaeft_ogd, by = c("geschaeftsnummer")) |> 
-  bind_rows(geschaeft_ogd)
-
-# Daten speichern
-saveRDS(geschaefte_full_mod,"data/geschaefte.rds")
-write.table(geschaefte_full_mod, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
-            row.names = F, na="",fileEncoding = "utf-8")
-
-
-
-# Mitglieder
-saveRDS(mitglieder_ogd,"data/gr_mitglieder.rds")
-write.table(mitglieder_ogd, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
-            row.names = F, na="",fileEncoding = "utf-8")
-
-# Vorstösser
-# Geschäfte 
-vorstoesser_full <-readRDS("data/vorstoesser.rds") 
-vorstoesser_full_mod <- vorstoesser_full |> 
-  anti_join(vorstoesser, by = c("geschaeftsnummer")) |> 
-  bind_rows(vorstoesser)
-
-# Daten speichern
-saveRDS(vorstoesser_full_mod,"data/vorstoesser.rds")
-write.table(vorstoesser_full_mod, file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
-            row.names = F, na="",fileEncoding = "utf-8")
-
-# Dokumente
-# Geschäfte 
-dokumente_full <-readRDS("data/dokumente.rds") #|> 
-  # rename(geschaeftstitel = titel) |> 
-  # mutate(lg = as.numeric(stringr::str_extract(geschaeftsnummer,"\\d\\d"))) |> 
-  # filter(lg<16)
-
-dokumente_full_mod <- dokumente_full |>
-  anti_join(dokumente_ogd, by = c("geschaeftsnummer", "doc_title")) |>
-  bind_rows(dokumente_ogd) |>
-  mutate(doc_link = ifelse(
-    stringr::str_detect(doc_link, "https://grgeko.tg.ch"),
-    "https://archivportal.tg.ch/",
-    doc_link
-  )) 
-
-# Daten speichern
-saveRDS(dokumente_full_mod,"data/dokumente.rds")
-write.table(dokumente_full_mod, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
-            row.names = F, na="",fileEncoding = "utf-8")
-
-
-
-
-# Abstimmungen
-# eval(parse("R/load_packages.R", encoding="UTF-8"))
-# eval(parse("R/abstimmungen_functions.R", encoding="UTF-8"))
-
-pdf_df_abst <- sitzung$dokumente |> 
-  filter(str_detect(file_name,"Trakt\\.")) |> 
-  select(guid,file_name,url) |> 
-  left_join(sitzung$sitzung,"guid") |> 
-  mutate(datum = lubridate::dmy(datum)) |> 
-  select(file_name,url,datum)
-
-get_abstimmungen(mitglieder_df=mitglieder_ogd, pdf_df = pdf_df_abst)
+data <- crawl_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
+prepare_abstimmung_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
+# get_abstimmungen(mitglieder_df=mitglieder_ogd, pdf_df = pdf_df_abst)
 
 
