@@ -718,3 +718,19 @@ write.table(dokumente_full_mod, file = "data/dokumente.csv", quote = T, sep = ",
             row.names = F, na="",fileEncoding = "utf-8")
 
 
+
+
+# Abstimmungen
+eval(parse("R/load_packages.R", encoding="UTF-8"))
+eval(parse("R/abstimmungen_functions.R", encoding="UTF-8"))
+
+pdf_df_abst <- sitzung$dokumente |> 
+  filter(str_detect(file_name,"Trakt\\.")) |> 
+  select(guid,file_name,url) |> 
+  left_join(sitzung$sitzung,"guid") |> 
+  mutate(datum = lubridate::dmy(datum)) |> 
+  select(file_name,url,datum)
+
+get_abstimmungen(mitglieder_df=mitglieder_ogd, pdf_df = pdf_df_abst)
+
+
