@@ -28,7 +28,7 @@ fetch_page <- function(base_url, s, page_size = 1000) {
 }
 
 
-test_connection <- function(base_url="https://tg.gemeinde.ch/api/geschaeft/searchdetails/"){
+test_connection <- function(base_url="https://parlament.tg.ch/api/geschaeft/searchdetails/"){
   url <- paste0(base_url, "?q=seq>0&l=de-CH&s=", 0, "&m=", 10)
   res <- url |>
     httr::GET(auth())
@@ -182,8 +182,47 @@ get_zustaendigkeit <- function(hits, ns) {
   })
 }
 
+
+get_gesch_dokumente <- function(hits, ns) {
+  map_dfr(hits, ~ {
+    geschaeft_guid <- xml_attr(.x, "Guid")
+    g <- xml_find_first(.x, "gs:Geschaeft", ns)
+    dokumente <- xml_find_all(g, "gs:Dokumente/gs:Dokument", ns)
+    if (length(dokumente) == 0) return(NULL)
+    
+    map_dfr(dokumente, function(dok) {
+      dok_node <- xml_find_first(dok, "gs:Dokument", ns)
+      versions <- xml_find_all(dok_node, "gs:Version", ns)
+      
+      # Keep only the max version
+      version_nrs <- as.integer(xml_attr(versions, "Nr"))
+      ver <- versions[[which.max(version_nrs)]]
+      version_nr <- max(version_nrs)
+      
+      renditions <- xml_find_all(ver, "gs:Rendition", ns)
+      
+      map_dfr(renditions, function(ren) {
+        tibble(
+          geschaeft_guid  = geschaeft_guid,
+          obj_guid        = xml_attr(dok, "OBJ_GUID"),
+          titel           = xml_text(xml_find_first(dok, "gs:Titel", ns)),
+          laufnummer      = xml_text(xml_find_first(dok, "gs:Laufnummer", ns)),
+          kategorie       = xml_text(xml_find_first(dok, "gs:Kategorie", ns)),
+          beschlussnummer = xml_text(xml_find_first(dok, "gs:Beschlussnummer", ns)),
+          dok_id          = xml_attr(dok_node, "ID"),
+          filename        = xml_attr(dok_node, "FileName"),
+          version_nr      = version_nr,
+          extension       = xml_attr(ren, "Extension"),
+          ansicht         = xml_attr(ren, "Ansicht"),
+          url = glue::glue("https://parlament.tg.ch/de/geschaefte/dok_geschaeft.php?did={dok_id}&v={version_nr}&r={ansicht}&typ={extension}")
+        )
+      })
+    })
+  }) 
+}
+
 get_geschaeft <- function(size = NULL) {
-  base_url <- "https://tg.gemeinde.ch/api/geschaeft/searchdetails/"
+  base_url <- "https://parlament.tg.ch/api/geschaeft/searchdetails/"
 
   ns <- c(
     sr = "http://www.cmiag.ch/cdws/searchDetailResponse",
@@ -215,7 +254,9 @@ get_geschaeft <- function(size = NULL) {
     erstunterzeichner = get_erstunterzeichner(hits, ns),
     mitvorstoesser    = get_mitvorstoesser(hits, ns),
     kommission        = get_kommission(hits, ns),
-    zustaendigkeit    = get_zustaendigkeit(hits, ns)
+    zustaendigkeit    = get_zustaendigkeit(hits, ns),
+    dokumente    = get_gesch_dokumente(hits, ns)
+    
   )
 }
 
@@ -223,7 +264,7 @@ get_geschaeft <- function(size = NULL) {
 
 
 get_behoerdenmandat <- function(size = NULL) {
-  base_url <- "https://tg.gemeinde.ch/api/behoerdenmandat/searchdetails/"
+  base_url <- "https://parlament.tg.ch/api/behoerdenmandat/searchdetails/"
 
   ns <- c(
     sr = "http://www.cmiag.ch/cdws/searchDetailResponse",
@@ -359,7 +400,7 @@ get_kontakt_behoerdenmandat <- function(hits, ns) {
 }
 
 get_kontakt <- function(size = NULL) {
-  base_url <- "https://tg.gemeinde.ch/api/kontakt/searchdetails/"
+  base_url <- "https://parlament.tg.ch/api/kontakt/searchdetails/"
   ns_kt <- c(
     sr = "http://www.cmiag.ch/cdws/searchDetailResponse",
     kt = "http://www.cmiag.ch/cdws/Kontakt"
@@ -482,7 +523,7 @@ get_sitzung <- function(size = NULL) {
     sr = "http://www.cmiag.ch/cdws/searchDetailResponse",
     sz = "http://www.cmiag.ch/cdws/Sitzung"
   )
-  base_url <- "https://tg.gemeinde.ch/api/sitzung/searchdetails/"
+  base_url <- "https://parlament.tg.ch/api/sitzung/searchdetails/"
 
   if (is.null(size) || size > 1000) {
     first_doc <- fetch_page(base_url, s = 0)
@@ -509,7 +550,7 @@ get_sitzung <- function(size = NULL) {
     purrr::reduce(c)
 
   dokumente <- get_sitzung_dokumente(hits, ns_sz) |>
-    mutate(url = glue::glue("https://tg.gemeinde.ch/de/politik/cdws/dok.php?did={file_id}&v={version_nr}&r={ansicht}&typ={extension}"))
+    mutate(url = glue::glue("https://parlament.tg.ch/de/politik/cdws/dok.php?did={file_id}&v={version_nr}&r={ansicht}&typ={extension}"))
 
   list(
     sitzung   = get_sitzung_base(hits, ns_sz),
@@ -537,7 +578,9 @@ geschaeft_ogd <- gescaeft$geschaefte |>
          total_unterzeichnende = "anzahl_unterzeichnende") |> 
   select(datum_geschaeft_eingang,status,datum_geschaeft_abschluss,geschaeftsnummer,grg_nummer,geschaftstitel,geschaftsart,sachbegriff_grgeko_1,departement,anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende) |> 
   mutate(across(where(is.character), ~ na_if(.x, ""))) |> 
-  mutate(across(c(datum_geschaeft_eingang,datum_geschaeft_abschluss),lubridate::dmy))
+  mutate(across(c(datum_geschaeft_eingang,datum_geschaeft_abschluss),lubridate::dmy)) |> 
+  mutate(across(c(anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende),as.numeric))
+
 
 # sk-stat-140 -> Departement kann über zuständigkeit gejoint werden
 
@@ -547,7 +590,8 @@ kontakt <- get_kontakt()
 mitglieder_ogd <- kontakt$kontakt |> 
   filter(organisation=="Grosser Rat") |> 
   left_join(kontakt$adresse |> 
-              filter(adressart=="Privatadresse"),"guid") |> 
+              filter(adressart=="Privatadresse",
+                     inaktiv=="false"),"guid") |> 
   distinct() |> 
   rename(nr = "personalnummer",
          wohnort = "ort",
@@ -561,11 +605,10 @@ mitglieder_ogd <- kontakt$kontakt |>
   ungroup() |> 
   select(-c(dauer,mandat_guid)) |> 
   distinct() |> 
-  mutate(img = glue::glue("https://tg.gemeinde.ch/de/mitglieder/bild.php?did={guid}-1664&version=1&typ=jpg")) |> 
+  mutate(img = glue::glue("https://parlament.tg.ch/de/mitglieder/bild.php?did={guid}-1664&version=1&typ=jpg")) |> 
   select(nr,name,vorname,geburtsdatum,geschlecht,beruf,wohnort,wahlbezirk,partei,fraktion,eintritt,img) |> 
   mutate(geburtsdatum=lubridate::dmy(geburtsdatum)) 
   
-
 # sk-stat-138 -> alle Variablen enthalten, zusätzlich Interessenbindungen und Grmeine/Organisationen
 
 # Vorstoesser aus sitzung
@@ -594,6 +637,16 @@ vorstoesser <- gescaeft$geschaefte |>
   select(nr,nachname,vorname,partei,geschaeftsnummer,geschaeftstitel = titel,erstunterzeichner)
 
 
+sitzungsdokumente <- sitzung$dokumente |> 
+  select(doc_title = file_name,doc_link=url,guid)
+
+
+dokumente_ogd <- gescaeft$dokumente |> 
+  select(geschaeft_guid,doc_title = titel,doc_link = url) |> 
+  left_join(gescaeft$geschaefte |> 
+              select(guid,geschaeftstitel=titel,geschaeftsnummer ),by = c("geschaeft_guid"="guid")) |> 
+  select(-geschaeft_guid)
+
 
 # Alles aus Dokumenten kann über Sitzungen abgezogen werden, Metadaten über Sitzung
 saveRDS(vorstoesser,"api_data/vorstoesser.rds")
@@ -604,3 +657,60 @@ saveRDS(Sys.Date(),"api_data/placeholder.rds")
 # Abstimmungen sind bei den Geschäften 
 # Sitzungs gedöns bei Sitzungen
 # Bild
+
+
+# Verbindung mit alten Daten
+
+# Geschäfte 
+geschaefte_full <-readRDS("data/geschaefte.rds")
+geschaefte_full <- geschaefte_full |> 
+  mutate(across(c(anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende),as.numeric)) |> 
+  mutate(datum_geschaeft_eingang=as.Date(datum_geschaeft_eingang))
+
+
+geschaefte_full_mod <- geschaefte_full |> 
+  anti_join(geschaeft_ogd, by = c("geschaeftsnummer")) |> 
+  bind_rows(geschaeft_ogd)
+
+# Daten speichern
+saveRDS(geschaefte_full_mod,"data/geschaefte.rds")
+write.table(geschaefte_full_mod, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
+            row.names = F, na="",fileEncoding = "utf-8")
+
+
+
+# Mitglieder
+saveRDS(mitglieder_ogd,"data/gr_mitglieder.rds")
+write.table(mitglieder_ogd, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
+            row.names = F, na="",fileEncoding = "utf-8")
+
+# Vorstösser
+# Geschäfte 
+vorstoesser_full <-readRDS("data/vorstoesser.rds")
+
+vorstoesser_full_mod <- vorstoesser_full |> 
+  anti_join(vorstoesser, by = c("geschaeftsnummer")) |> 
+  bind_rows(vorstoesser)
+
+# Daten speichern
+saveRDS(vorstoesser_full_mod,"data/vorstoesser.rds")
+write.table(vorstoesser_full_mod, file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
+            row.names = F, na="",fileEncoding = "utf-8")
+
+# Dokumente
+# Geschäfte 
+dokumente_full <-readRDS("data/dokumente.rds") |> 
+  # rename(geschaeftstitel = titel) |> 
+  mutate(lg = as.numeric(stringr::str_extract(geschaeftsnummer,"\\d\\d"))) |> 
+  filter(lg<16)
+
+dokumente_full_mod <- dokumente_full |> 
+  anti_join(dokumente_ogd, by = c("geschaeftsnummer","doc_title")) |> 
+  bind_rows(dokumente_ogd) 
+
+# Daten speichern
+saveRDS(dokumente_full_mod,"data/dokumente.rds")
+write.table(dokumente_full_mod, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
+            row.names = F, na="",fileEncoding = "utf-8")
+
+
