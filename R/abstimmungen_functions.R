@@ -177,8 +177,24 @@ crawl_pdf <- function(url){
     stop("Failed to download PDF: ", status_code(response), "\n", rawToChar(content(response)))
   }
   
-  df_list <- pdftools::pdf_data(path, font_info = T)
+  df_list <- tryCatch(
+    withCallingHandlers(
+      pdftools::pdf_data(path, font_info = TRUE),
+      warning = function(w) {
+        if (grepl("Column sizes are not equal", conditionMessage(w))) {
+          invokeRestart("muffleWarning")
+        }
+      }
+    ),
+    error = function(e) {
+      warning(url, " scheint kein Abstimmungsprotokoll zu sein.")
+      return(NULL)
+    }
+  )
+  
   unlink(path)
+  
+  if (is.null(df_list)) return(NULL)
   
   # Coerce pages degraded to list back to data.frame, drop if unrecoverable
   df_list <- lapply(df_list, function(page) {

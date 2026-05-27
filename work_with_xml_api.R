@@ -180,40 +180,40 @@ pdftools::poppler_config()
 #   mutate(datum = lubridate::dmy(datum)) |> 
 #   select(file_name,url,datum)
 
-# data <- crawl_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
-path <- tempfile(fileext = ".pdf")
-
-
-url <- "https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf"
-response <- GET(url)
-
-if (status_code(response) == 200) {
-  writeBin(content(response, "raw"), path)
-} else {
-  stop("Failed to download PDF: ", status_code(response), "\n", rawToChar(content(response)))
-}
-message("pdftools::pdf_data(path, font_info = T)")
-df_list <- pdftools::pdf_data(path, font_info = T)
-unlink(path)
-
-message("df_list")
-# Coerce pages degraded to list back to data.frame, drop if unrecoverable
-df_list <- lapply(df_list, function(page) {
-  if (is.data.frame(page)) return(page)
-  tryCatch(as.data.frame(page), error = function(e) NULL)
-})
-
-valid_pages <- which(!sapply(df_list, is.null))
-
-if (length(valid_pages) == 0) {
-  warning(url, " scheint kein Abstimmungsprotokoll zu sein.")
-  # return(NULL)
-}
-
-lapply(valid_pages, function(x){
-  df_list[[x]]$page <- x
-  df_list[[x]]
-}) %>% bind_rows()
+data <- crawl_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
+# path <- tempfile(fileext = ".pdf")
+# 
+# 
+# url <- "https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf"
+# response <- GET(url)
+# 
+# if (status_code(response) == 200) {
+#   writeBin(content(response, "raw"), path)
+# } else {
+#   stop("Failed to download PDF: ", status_code(response), "\n", rawToChar(content(response)))
+# }
+# message("pdftools::pdf_data(path, font_info = T)")
+# df_list <- pdftools::pdf_data(path, font_info = T)
+# unlink(path)
+# 
+# message("df_list")
+# # Coerce pages degraded to list back to data.frame, drop if unrecoverable
+# df_list <- lapply(df_list, function(page) {
+#   if (is.data.frame(page)) return(page)
+#   tryCatch(as.data.frame(page), error = function(e) NULL)
+# })
+# 
+# valid_pages <- which(!sapply(df_list, is.null))
+# 
+# if (length(valid_pages) == 0) {
+#   warning(url, " scheint kein Abstimmungsprotokoll zu sein.")
+#   # return(NULL)
+# }
+# 
+# lapply(valid_pages, function(x){
+#   df_list[[x]]$page <- x
+#   df_list[[x]]
+# }) %>% bind_rows()
 
 
 # prepare_abstimmung_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
