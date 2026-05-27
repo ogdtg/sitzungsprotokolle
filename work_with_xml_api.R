@@ -6,6 +6,97 @@ packageVersion("pdftools")
 pdftools::poppler_config()
 
 
+
+# sitzung <- get_sitzung()
+# behoerdenmandat <- get_behoerdenmandat()
+# 
+# # Geschäfte
+# gescaeft <- get_geschaeft()
+# 
+# geschaeft_ogd <- gescaeft$geschaefte |> 
+#   left_join(gescaeft$zustaendigkeit,"guid") |> 
+#   rename(datum_geschaeft_eingang = "eingangsdatum",
+#          datum_geschaeft_abschluss = "abschlussdatum",
+#          status = "geschaeftsstatus",
+#          geschaftstitel = "titel",
+#          sachbegriff_grgeko_1 = "themenbereich",
+#          departement = "zustaendigkeit_name",
+#          grg_nummer = "grg_nr",
+#          geschaftsart="geschaeftsart",
+#          anzahl_erstunterzeichnende = "anzahl_vorstoesser",
+#          total_unterzeichnende = "anzahl_unterzeichnende") |> 
+#   select(datum_geschaeft_eingang,status,datum_geschaeft_abschluss,geschaeftsnummer,grg_nummer,geschaftstitel,geschaftsart,sachbegriff_grgeko_1,departement,anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende) |> 
+#   mutate(across(where(is.character), ~ na_if(.x, ""))) |> 
+#   mutate(across(c(datum_geschaeft_eingang,datum_geschaeft_abschluss),lubridate::dmy)) |> 
+#   mutate(across(c(anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende),as.numeric))
+# 
+# 
+# # sk-stat-140 -> Departement kann über zuständigkeit gejoint werden
+# 
+# # Mitglieder GR
+# kontakt <- get_kontakt()
+# 
+# mitglieder_ogd <- kontakt$kontakt |> 
+#   filter(organisation=="Grosser Rat") |> 
+#   left_join(kontakt$adresse |> 
+#               filter(adressart=="Privatadresse",
+#                      inaktiv=="false"),"guid") |> 
+#   distinct() |> 
+#   rename(nr = "personalnummer",
+#          wohnort = "ort",
+#          wahlbezirk = "wahlkreis") |>
+#   left_join(kontakt$behoerdenmandat |> 
+#               filter(gremium_name=="Grosser Rat",
+#                      funktion=="Mitglied"),"guid") |> 
+#   mutate(eintritt = as.numeric(stringr::str_extract(dauer,"\\d\\d\\d\\d"))) |> 
+#   group_by(guid) |> 
+#   mutate(eintritt = min(eintritt)) |> 
+#   ungroup() |> 
+#   select(-c(dauer,mandat_guid)) |> 
+#   distinct() |> 
+#   mutate(img = glue::glue("https://parlament.tg.ch/de/mitglieder/bild.php?did={guid}-1664&version=1&typ=jpg")) |> 
+#   select(nr,name,vorname,geburtsdatum,geschlecht,beruf,wohnort,wahlbezirk,partei,fraktion,eintritt,img) |> 
+#   mutate(geburtsdatum=lubridate::dmy(geburtsdatum)) 
+# 
+# # sk-stat-138 -> alle Variablen enthalten, zusätzlich Interessenbindungen und Grmeine/Organisationen
+# 
+# # Vorstoesser aus sitzung
+# 
+# erstunterzeichner <- gescaeft$erstunterzeichner |> 
+#   select(guid,benutzer_guid) |> 
+#   left_join(kontakt$kontakt,by = c("benutzer_guid"="guid")) |> 
+#   select(guid,nr = personalnummer,nachname = name,vorname,partei) |> 
+#   mutate(erstunterzeichner = "ja")
+# 
+# 
+# mitunterzeichner <- gescaeft$mitvorstoesser |> 
+#   select(guid,benutzer_guid) |> 
+#   left_join(kontakt$kontakt,by = c("benutzer_guid"="guid")) |> 
+#   select(guid,nr = personalnummer,nachname = name,vorname,partei) |> 
+#   mutate(erstunterzeichner = "nein")
+# 
+# 
+# unterzeichner <- erstunterzeichner |> 
+#   bind_rows(mitunterzeichner)
+# 
+# vorstoesser <- gescaeft$geschaefte |> 
+#   select(guid,titel,geschaeftsnummer) |> 
+#   filter(guid %in% unterzeichner$guid) |> 
+#   left_join( unterzeichner, "guid") |> 
+#   select(nr,nachname,vorname,partei,geschaeftsnummer,titel,erstunterzeichner)
+# 
+# 
+# sitzungsdokumente <- sitzung$dokumente |> 
+#   select(doc_title = file_name,doc_link=url,guid)
+# 
+# 
+# dokumente_ogd <- gescaeft$dokumente |> 
+#   select(geschaeft_guid,doc_title = titel,doc_link = url) |> 
+#   left_join(gescaeft$geschaefte |> 
+#               select(guid,geschaeftstitel=titel,geschaeftsnummer ),by = c("geschaeft_guid"="guid")) |> 
+#   select(-geschaeft_guid)
+
+
 # Alles aus Dokumenten kann über Sitzungen abgezogen werden, Metadaten über Sitzung
 # saveRDS(vorstoesser,"api_data/vorstoesser.rds")
 # saveRDS(mitglieder_ogd,"api_data/mitglieder.rds")
@@ -89,7 +180,42 @@ pdftools::poppler_config()
 #   mutate(datum = lubridate::dmy(datum)) |> 
 #   select(file_name,url,datum)
 
-data <- crawl_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
+# data <- crawl_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
+path <- tempfile(fileext = ".pdf")
+
+
+url <- "https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf"
+response <- GET(url)
+
+if (status_code(response) == 200) {
+  writeBin(content(response, "raw"), path)
+} else {
+  stop("Failed to download PDF: ", status_code(response), "\n", rawToChar(content(response)))
+}
+message("pdftools::pdf_data(path, font_info = T)")
+df_list <- pdftools::pdf_data(path, font_info = T)
+unlink(path)
+
+message("df_list")
+# Coerce pages degraded to list back to data.frame, drop if unrecoverable
+df_list <- lapply(df_list, function(page) {
+  if (is.data.frame(page)) return(page)
+  tryCatch(as.data.frame(page), error = function(e) NULL)
+})
+
+valid_pages <- which(!sapply(df_list, is.null))
+
+if (length(valid_pages) == 0) {
+  warning(url, " scheint kein Abstimmungsprotokoll zu sein.")
+  # return(NULL)
+}
+
+lapply(valid_pages, function(x){
+  df_list[[x]]$page <- x
+  df_list[[x]]
+}) %>% bind_rows()
+
+
 # prepare_abstimmung_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
 # get_abstimmungen(mitglieder_df=mitglieder_ogd, pdf_df = pdf_df_abst)
 
