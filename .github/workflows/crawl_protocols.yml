@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04   # <-- pin this! Ubuntu 20.04 ships poppler 0.86/21.x
+    runs-on: ubuntu-latest   # <-- pin this! Ubuntu 20.04 ships poppler 0.86/21.x
     container: florenz2/pdf_scrape:latest_
 
     steps:
