@@ -180,11 +180,17 @@ crawl_pdf <- function(url){
   df_list <- pdftools::pdf_data(path, font_info = T)
   unlink(path)
   
-  # Filter out pages where poppler degraded the output to a list
-  valid_pages <- which(sapply(df_list, is.data.frame))
+  # Coerce pages degraded to list back to data.frame, drop if unrecoverable
+  df_list <- lapply(df_list, function(page) {
+    if (is.data.frame(page)) return(page)
+    tryCatch(as.data.frame(page), error = function(e) NULL)
+  })
+  
+  valid_pages <- which(!sapply(df_list, is.null))
   
   if (length(valid_pages) == 0) {
-    stop("PDF enthält keine verwertbaren Seiten: ", url)
+    warning(url, " scheint kein Abstimmungsprotokoll zu sein.")
+    return(NULL)
   }
   
   lapply(valid_pages, function(x){
