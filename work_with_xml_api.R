@@ -90,7 +90,7 @@ pdftools::poppler_config()
 #   select(file_name,url,datum)
 
 data <- crawl_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
-prepare_abstimmung_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
+# prepare_abstimmung_pdf("https://parlament.tg.ch/de/politik/cdws/dok.php?did=5f79b8bf771a49bdadd3657dc6e92893-332&v=2&r=PDF&typ=pdf")
 # get_abstimmungen(mitglieder_df=mitglieder_ogd, pdf_df = pdf_df_abst)
 
 
