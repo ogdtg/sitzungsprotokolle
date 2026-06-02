@@ -25,9 +25,9 @@ geschaeft_ogd <- gescaeft$geschaefte |>
          geschaftsart="geschaeftsart",
          anzahl_erstunterzeichnende = "anzahl_vorstoesser",
          total_unterzeichnende = "anzahl_unterzeichnende") |>
-  select(datum_geschaeft_eingang,status,datum_geschaeft_abschluss,geschaeftsnummer,grg_nummer,geschaftstitel,geschaftsart,sachbegriff_grgeko_1,departement,anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende) |>
+  # select(datum_geschaeft_eingang,status,datum_geschaeft_abschluss,geschaeftsnummer,grg_nummer,geschaftstitel,geschaftsart,sachbegriff_grgeko_1,departement,anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende) |>
   mutate(across(where(is.character), ~ na_if(.x, ""))) |>
-  mutate(across(c(datum_geschaeft_eingang,datum_geschaeft_abschluss),lubridate::dmy)) |>
+  mutate(across(c(datum_geschaeft_eingang,datum_geschaeft_abschluss,frist_beantwortung,datum_beantwortung),lubridate::dmy)) |>
   mutate(across(c(anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende),as.numeric))
 #
 #
@@ -112,6 +112,8 @@ dokumente_ogd <- gescaeft$dokumente |>
 
 # Geschäfte
 geschaefte_full <-readRDS("data/geschaefte.rds")
+geschaefte_full <-readRDS("data/vorstoesse_full.rds")
+
 geschaefte_full <- geschaefte_full |>
   mutate(across(c(anzahl_erstunterzeichnende,anzahl_mitunterzeichnende,total_unterzeichnende),as.numeric)) |>
   mutate(datum_geschaeft_eingang=as.Date(datum_geschaeft_eingang))
@@ -136,6 +138,8 @@ write.table(mitglieder_ogd, file = "data/gr_mitglieder.csv", quote = T, sep = ",
 # Vorstösser
 # Geschäfte
 vorstoesser_full <-readRDS("data/vorstoesser.rds")
+vorstoesser_full <-readRDS("data/vorstoesse_full.rds")
+
 vorstoesser_full_mod <- vorstoesser_full |>
   anti_join(vorstoesser, by = c("geschaeftsnummer")) |>
   bind_rows(vorstoesser)
@@ -147,10 +151,12 @@ write.table(vorstoesser_full_mod, file = "data/vorstoesser.csv", quote = T, sep 
 
 # Dokumente
 # Geschäfte
+
 dokumente_full <-readRDS("data/dokumente.rds") #|>
   # rename(geschaeftstitel = titel) |>
   # mutate(lg = as.numeric(stringr::str_extract(geschaeftsnummer,"\\d\\d"))) |>
   # filter(lg<16)
+dokumente_full <-readRDS("data/dokumente_full.rds") 
 
 dokumente_full_mod <- dokumente_full |>
   anti_join(dokumente_ogd, by = c("geschaeftsnummer", "doc_title")) |>

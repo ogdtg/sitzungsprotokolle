@@ -39,46 +39,59 @@ print(grepl('"', Sys.getenv("PW_GR_API")))
 
 test_connection()
 
-get_geschaeft_base <- function(hits,ns){
+get_geschaeft_base <- function(hits, ns) {
   df <- map_dfr(hits, ~ {
     g <- xml_find_first(.x, "gs:Geschaeft", ns)
     
-    get_t <- function(path) xml_text(xml_find_first(g, path, ns))
+    get_t <- function(path) {
+      node <- xml_find_first(g, path, ns)
+      if (is.na(node)) return(NA_character_)
+      nil <- xml_attr(node, "xsi:nil")
+      if (!is.na(nil) && nil == "true") return(NA_character_)
+      val <- xml_text(node)
+      if (nzchar(val)) val else NA_character_
+    }
+    
+    zustaendigkeit <- xml_find_all(g, "gs:Zustaendigkeit/gs:Organisationseinheit", ns) |>
+      map_chr(~ {
+        name     <- xml_text(xml_find_first(.x, "gs:Name", ns))
+        kurzname <- xml_text(xml_find_first(.x, "gs:Kurzname", ns))
+        if (nzchar(kurzname)) paste0(name, " (", kurzname, ")") else name
+      }) |> paste(collapse = "; ")
     
     tibble(
-      guid                       = xml_attr(.x, "Guid"),
-      titel                      = get_t("gs:Titel"),
-      geschaeftsnummer           = get_t("gs:Geschaeftsnummer"),
-      grg_nr                     = get_t("gs:GRGNr"),
-      ga_laufnummer              = get_t("gs:GALaufnummer"),
-      geschaeftsstatus           = get_t("gs:Geschaeftsstatus"),
-      geschaeftsart              = get_t("gs:Geschaeftsart"),
-      beginn                     = get_t("gs:Beginn/gs:Text"),
-      anzahl_vorstoesser         = get_t("gs:AnzahlVorstoesser"),
-      anzahl_mitunterzeichnende  = get_t("gs:AnzahlMitunterzeichnende"),
-      anzahl_unterzeichnende     = get_t("gs:AnzahlUnterzeichnende"),
-      legislatur                 = get_t("gs:Legislatur"),
-      eingangsdatum              = get_t("gs:Eingangsdatum/gs:Text"),
-      abschlussdatum             = get_t("gs:Abschlussdatum/gs:Text"),
-      themenbereich              = get_t("gs:Themenbereich"),
-      status_gr                  = get_t("gs:StatusGR"),
-      frist_beantwortung         = get_t("gs:FristBeantwortung/gs:Text"),
-      datum_beantwortung         = get_t("gs:DatumBeantwortung/gs:Text"),
-      dringlich                  = get_t("gs:Dringlich"),
-      erheblichkeitserklaerung   = get_t("gs:Erheblichkeitserklaerung"),
-      teilerheblicherklaerung    = get_t("gs:Teilerheblicherklaerung"),
-      diskussion                 = get_t("gs:Diskussion"),
-      vorlaeutige_unterstuetzung = get_t("gs:VorlaeufigeUnterstuetzung"),
-      abschreibung               = get_t("gs:Abschreibung"),
-      rueckzug                   = get_t("gs:Rueckzug"),
-      entlastung                 = get_t("gs:Entlastung"),
-      volksabstimmung            = get_t("gs:Volksabstimmung"),
-      datum_erheblicherklaerung  = get_t("gs:DatumErheblicherklaerung/gs:Text"),
-      frist_bericht              = get_t("gs:FristBericht/gs:Text"),
-      datum_behoerdenreferendum  = get_t("gs:DatumBehoerdenreferendum/gs:Text"),
-      datum_volksabstimmung      = get_t("gs:DatumVolksabstimmung/gs:Text"),
-      pendent_bei                = get_t("gs:PendentBei"),
-      traktanden                 = get_t("gs:Traktanden")
+      guid                         = xml_attr(.x, "Guid"),
+      titel                        = get_t("gs:Titel"),
+      geschaeftsnummer             = get_t("gs:Geschaeftsnummer"),
+      grg_nr                       = get_t("gs:GRGNr"),
+      geschaeftsstatus             = get_t("gs:Geschaeftsstatus"),
+      geschaeftsart                = get_t("gs:Geschaeftsart"),
+      anzahl_vorstoesser           = get_t("gs:AnzahlVorstoesser"),
+      anzahl_mitunterzeichnende    = get_t("gs:AnzahlMitunterzeichnende"),
+      anzahl_unterzeichnende       = get_t("gs:AnzahlUnterzeichnende"),
+      legislatur                   = get_t("gs:Legislatur"),
+      eingangsdatum                = get_t("gs:Eingangsdatum/gs:Text"),
+      abschlussdatum               = get_t("gs:Abschlussdatum/gs:Text"),
+      themenbereich                = get_t("gs:Themenbereich"),
+      status_gr                    = get_t("gs:StatusGR"),
+      frist_beantwortung           = get_t("gs:FristBeantwortung/gs:Text"),
+      datum_beantwortung           = get_t("gs:DatumBeantwortung/gs:Text"),
+      dringlich                    = get_t("gs:Dringlich"),
+      erheblichkeitserklaerung     = get_t("gs:Erheblichkeitserklaerung"),
+      teilerheblicherklaerung      = get_t("gs:Teilerheblicherklaerung"),
+      diskussion                   = get_t("gs:Diskussion"),
+      vorlaeutige_unterstuetzung   = get_t("gs:VorlaeufigeUnterstuetzung"),
+      abschreibung                 = get_t("gs:Abschreibung"),
+      rueckzug                     = get_t("gs:Rueckzug"),
+      entlastung                   = get_t("gs:Entlastung"),
+      volksabstimmung              = get_t("gs:Volksabstimmung"),
+      datum_erheblicherklaerung    = get_t("gs:DatumErheblicherklaerung/gs:Text"),
+      frist_bericht                = get_t("gs:FristBericht/gs:Text"),
+      datum_behoerdenreferendum    = get_t("gs:DatumBehoerdenreferendum/gs:Text"),
+      datum_volksabstimmung        = get_t("gs:DatumVolksabstimmung/gs:Text"),
+      pendent_bei                  = get_t("gs:PendentBei"),
+      kommission                   = get_t("gs:Kommission"),
+      zustaendigkeit               = zustaendigkeit,
     )
   })
 }
