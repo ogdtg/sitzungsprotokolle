@@ -255,11 +255,21 @@ create_abst_data <- function(pdf_data_abst_red, var_data, substract_one = T,subs
            geschaeftsnummer = str_extract(traktandum,"\\((\\d.*?\\d)\\)") %>% str_remove("\\(") %>% str_remove("\\)"),
            traktandum = traktandum) %>% 
     mutate_if(is.character,str_trim) %>% 
-    mutate_if(is.character,~str_replace_all(.x,'"',"'")) %>% 
-    rename(fraktion = "Fraktion",
-           name_vorname="Name",
-           stimme = "Stimme",
-           nr = "Nr.")
+    mutate_if(is.character,~str_replace_all(.x,'"',"'")) 
+  
+  if ("Nr." %in% names(result)){
+    result <- result %>% 
+      rename(fraktion = "Fraktion",
+             name_vorname="Name",
+             stimme = "Stimme",
+             nr = "Nr.")
+  } else {
+    result <- result %>% 
+      rename(fraktion = "Fraktion",
+             name_vorname="Name",
+             stimme = "Stimme")
+  }
+
   
   if (is.na(result$geschaeftsnummer[1])){
     return(NULL)
@@ -354,7 +364,12 @@ prepare_abstimmung_pdf <- function(url){
       })
     })
   })
-  abst_data$nr <- as.character(abst_data$nr )
+  
+  if ("nr" %in% names(abst_data)){
+    abst_data$nr <- as.character(abst_data$nr )
+  } else {
+    abst_data$nr <- NA
+  }
   abst_data$url <- url
   
   return(abst_data)
@@ -371,7 +386,10 @@ get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschae
   pdf_df_abst <- pdf_df 
   mitglieder_df <- readRDS("data/mitglieder_full.rds")
     
-  
+  # Damit Parlametsdienste es nicht fixen müssen
+  # Änderungen vor diesem Datum werden nicht erfasst
+  pdf_df_abst <- pdf_df_abst |> 
+    filter(datum>as.Date("2026-04-29"))
   
   if (nrow(pdf_df_abst)>0){
     abstimmungen_old <- readRDS("data/abstimmungen_ogd.rds") %>% 
@@ -401,45 +419,6 @@ get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschae
       filter(geschaeftsnummer!="") |> 
       filter(!is.na(geschaeftsnummer)) 
     
-    
-    # # Abgleich mit Mitgliederliste
-    # abstimmungen_new_mod <- abstimmungen_new %>% 
-    #   left_join(mitglieder_df %>% 
-    #               mutate(name_vorname=paste0(name," ",vorname)), by = c("name_vorname","fraktion"))
-    # 
-    # compare_df_new <- abstimmungen_new_mod %>% 
-    #   filter(is.na(name)) %>% 
-    #   distinct(name_vorname,datum,geschaeftsnummer)
-    # 
-    # 
-    # if (nrow(compare_df_new)>0){
-    #   
-    #   
-    #   
-    #   gnum <- compare_df_new %>% distinct(geschaeftsnummer) %>% pull()
-    #   
-    #   if (length(gnum)>3){
-    #     gnum_string <- "mehreren Geschaeften"
-    #   } else {
-    #     gnum_string <- paste0(gnum, collapse = ", ")
-    #   }
-    #   
-    #   
-    #   
-    #   issue_body <- compare_df_new %>% 
-    #     mutate(issue_body = paste0(name_vorname," (",geschaeftsnummer,")")) %>% 
-    #     pull(issue_body) %>% 
-    #     paste0(.,collapse="\n")
-    #   
-    #   create_gh_issue(
-    #     title = paste0("Abstimmungen: Unbekannte Namen bei ",gnum_string),
-    #     body = paste0(
-    #       "Folgende Mitglieder konnten keinem Eintrag aus der Mitgliederliste zugeordnet werden:\n\n",
-    #       issue_body
-    #     )
-    #   )
-    #   message("GitHub Issue created (Abstimmungen)")
-    # }
 
     
     saveRDS(abstimmungen,"data/abstimmungen_ogd.rds")

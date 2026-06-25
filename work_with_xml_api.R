@@ -138,7 +138,7 @@ write.table(mitglieder_ogd, file = "data/gr_mitglieder.csv", quote = T, sep = ",
 # Vorstösser
 # Geschäfte
 vorstoesser_full <-readRDS("data/vorstoesser.rds")
-vorstoesser_full <-readRDS("data/vorstoesse_full.rds")
+vorstoesser_full <-readRDS("data/vorstoesser_full.rds")
 
 vorstoesser_full_mod <- vorstoesser_full |>
   anti_join(vorstoesser, by = c("geschaeftsnummer")) |>
@@ -188,5 +188,98 @@ pdf_df_abst <- sitzung$dokumente |>
 
 
 get_abstimmungen(mitglieder_df=mitglieder_ogd, pdf_df = pdf_df_abst)
+
+
+# abst <- readRDS("data/abstimmungen_ogd.rds")
+# 
+# old_data <- odsAPI::get_dataset(dataset_id="sk-stat-136")
+# 
+# old_data_red <- old_data |> 
+#   filter(datum<min(abst$datum))
+# 
+# 
+# missings <- old_data |> 
+#   mutate(datum = as.Date(datum)) |> 
+#   filter(datum>=min(abstimmungen_ogd$datum)) |> 
+#   anti_join(abstimmungen_ogd,join_by(datum)) |> 
+#   mutate(nr = as.character(nr))
+# 
+# abst_full <- abstimmungen_ogd |> 
+#   bind_rows(old_data_red |> 
+#               mutate(datum = as.Date(datum),
+#                      nr = NA_character_)) |> 
+#   bind_rows(missings) |> 
+#   arrange(desc(datum))
+
+
+
+
+# abst <- saveRDS(abst_full,"data/abstimmungen_ogd.rds")
+
+
+
+
+# 
+# gr_mitglieder <- readRDS("data/gr_mitglieder.rds") |>
+#   mutate(name_vorname = str_trim(paste0(name," ",vorname))) |>
+#   mutate(fraktion = case_when(
+#     fraktion == "SP und Gew." ~ "SP und Gewerkschaften",
+#     .default = fraktion
+#   ))
+# 
+# 
+# 
+# uni_abst <- abst |> 
+#   filter(!is.na(nr)) |> 
+#   distinct(fraktion,name_vorname,nr)
+# 
+# 
+# unified_name <- uni_abst |> 
+#   group_by(name_vorname,fraktion) |> 
+#   summarise(nums = paste0(nr,collapse = ", "))
+# 
+# unique_name_nr <- abst |>
+#   group_by(name_vorname,fraktion,nr) |>
+#   count() |>
+#   ungroup() |>
+#   left_join(gr_mitglieder,join_by(nr,name_vorname)) |>
+#   filter(!is.na(name) | !name_vorname %in% gr_mitglieder$name_vorname) |>
+#   filter(!is.na(nr)) |>
+#   filter(!(name_vorname == "Indergand Aline" & nr==360)) |>
+#   filter(!(name_vorname == "Schönegger Waltraud" & nr!=428)) |>
+#   filter(!(name_vorname == "Pfiffner Müller Martina" & nr==406))  |>
+#   select(name_vorname,fraktion = fraktion.x,nr) |>
+#   add_row(name_vorname="Forster Urs",fraktion="FDP",nr = "440")
+# 
+# 
+# old_data_red_join <- old_data_red |> 
+#     select(-nr) |>
+#     left_join(unique_name_nr) |>
+#     mutate(nr = case_when(
+#       name_vorname=="Auer Jakob" ~ "283",
+#       TRUE ~ nr
+#     ))
+
+# 
+# abst_full <- abst |> 
+#   select(-nr) |> 
+#   left_join(unique_name_nr) |> 
+#   mutate(nr = case_when(
+#     name_vorname=="Auer Jakob" ~ "283",
+#     TRUE ~ nr
+#   )) 
+# 
+# abst_full |> 
+#   group_by(nr) |> 
+#   summarise(n = n_distinct(name_vorname)) |> 
+#   arrange(desc(n))
+
+# abst <- saveRDS(abst_full,"data/abstimmungen_ogd.rds")
+
+
+# Kommissionen und Mitglieder
+kom <- gescaeft$kommission
+
+kom_ogd
 
 

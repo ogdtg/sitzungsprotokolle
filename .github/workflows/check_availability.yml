@@ -1,19 +1,15 @@
 name: XML API run 
-
 on:
   workflow_dispatch:
-
-
+  schedule:
+    - cron: '0 2 * * *'   # täglich 02:00 UTC ≈ 03:00/04:00 Schweizer Zeit (CET/CEST)
 jobs:
   build:
     runs-on: ubuntu-latest   # <-- pin this! Ubuntu 20.04 ships poppler 0.86/21.x
     container: florenz2/pdf_scrape:latest_
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-
-
     - name: Execute script 
       env:
         PUSHKEY: ${{ secrets.PUSHKEY }}
@@ -22,7 +18,6 @@ jobs:
         PW_GR_API: ${{ secrets.PW_GR_API }}
       run: |
         Rscript work_with_xml_api.R
-
     - name: GIT Commit Build Artifacts (coverage, dist, devdist, docs)
       run: |
         git config --global --add safe.directory /__w/sitzungsprotokolle/sitzungsprotokolle
