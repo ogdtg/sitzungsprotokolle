@@ -278,8 +278,30 @@ get_abstimmungen(mitglieder_df=mitglieder_ogd, pdf_df = pdf_df_abst)
 
 
 # Kommissionen und Mitglieder
-kom <- gescaeft$kommission
+kom <- behoerdenmandat |> 
+  filter(str_detect(gremium,"ommission")) |> 
+  left_join(kontakt$kontakt |> 
+              select(personalnummer,guid,fraktion),by = c("kontakt_uid"="guid")) |> 
+  select(-c(kontakt_uid,gremium_uid,wahlkreis,partei)) |> 
+  select(kommission_id = guid,start:gremiumstyp, nr =personalnummer,name,vorname,funktion:fraktion) |> 
+  mutate(across(c(start,end),~as_date(ymd_hms(.x)))) 
 
-kom_ogd
+saveRDS(kom,"data/kommission.rds")
+write.table(kom, file = "data/kommission.csv", quote = T, sep = ",", dec = ".",
+            row.names = F, na="",fileEncoding = "utf-8")
+
+# Interessenverbindung
+intver <- kontakt$interessenbindung |> 
+  left_join(kontakt$kontakt |> 
+              select(personalnummer,name,vorname,guid,fraktion),by = c("guid")) |> 
+  select(-c(guid)) |> 
+  select(nr =personalnummer,name,vorname,fraktion,funktion,beschreibung,dauer)
+  
+saveRDS(intver,"data/intver.rds")
+write.table(intver, file = "data/intver.csv", quote = T, sep = ",", dec = ".",
+            row.names = F, na="",fileEncoding = "utf-8")
+
+
+  
 
 
