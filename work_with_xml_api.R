@@ -36,28 +36,38 @@ geschaeft_ogd <- gescaeft$geschaefte |>
 # Mitglieder GR
 kontakt <- get_kontakt()
 
-mitglieder_ogd <- kontakt$kontakt |>
-  filter(organisation=="Grosser Rat") |>
+gr_mtgl <- kontakt$behoerdenmandat |> 
+  filter(gremium_kurz=="GR") |> 
+  filter(str_detect(dauer, "^\\d\\d\\.\\d\\d.\\d\\d\\d\\d -$"))
+
+mitglieder_ogd_aktiv <- kontakt$kontakt |>
+  left_join(kontakt$behoerdenmandat,"guid") |> 
+  filter(gremium_kurz=="GR") |> 
+  filter(str_detect(dauer, "^\\d\\d\\.\\d\\d.\\d\\d\\d\\d -$")) |> 
   left_join(kontakt$adresse |>
               filter(adressart=="Privatadresse",
                      inaktiv=="false"),"guid") |>
-  distinct() |>
+  distinct(guid,.keep_all = TRUE) |>
   rename(nr = "personalnummer",
          wohnort = "ort",
          wahlbezirk = "wahlkreis") |>
-  left_join(kontakt$behoerdenmandat |>
-              filter(gremium_name=="Grosser Rat",
-                     funktion=="Mitglied"),"guid") |>
   mutate(eintritt = as.numeric(stringr::str_extract(dauer,"\\d\\d\\d\\d"))) |>
   group_by(guid) |>
   mutate(eintritt = min(eintritt)) |>
-  ungroup() |>
+  ungroup()
+
+mitglieder_ogd <- mitglieder_ogd_aktiv |>
   select(-c(dauer,mandat_guid)) |>
   distinct() |>
   mutate(img = glue::glue("https://parlament.tg.ch/de/mitglieder/bild.php?did={guid}-1664&version=1&typ=jpg")) |>
   select(nr,name,vorname,geburtsdatum,geschlecht,beruf,wohnort,wahlbezirk,partei,fraktion,eintritt,img) |>
   mutate(geburtsdatum=lubridate::dmy(geburtsdatum))
 #
+
+test <- kontakt$kontakt |> 
+  left_join(gr_mtgl,"guid") |> 
+  filter(str_detect(dauer, "^\\d\\d\\.\\d\\d.\\d\\d\\d\\d -$"))
+
 # # sk-stat-138 -> alle Variablen enthalten, zusätzlich Interessenbindungen und Grmeine/Organisationen
 #
 # Vorstoesser aus sitzung
@@ -284,7 +294,9 @@ kom <- behoerdenmandat |>
               select(personalnummer,guid,fraktion),by = c("kontakt_uid"="guid")) |> 
   select(-c(kontakt_uid,gremium_uid,wahlkreis,partei)) |> 
   select(kommission_id = guid,start:gremiumstyp, nr =personalnummer,name,vorname,funktion:fraktion) |> 
-  mutate(across(c(start,end),~as_date(ymd_hms(.x)))) 
+  mutate(across(c(start,end),~as_date(ymd_hms(.x)))) |> 
+  mutate(end = case_when(end == as.Date("9999-12-31")~NA,
+                         .default = end))
 
 saveRDS(kom,"data/kommission.rds")
 write.table(kom, file = "data/kommission.csv", quote = T, sep = ",", dec = ".",
@@ -294,8 +306,9 @@ write.table(kom, file = "data/kommission.csv", quote = T, sep = ",", dec = ".",
 intver <- kontakt$interessenbindung |> 
   left_join(kontakt$kontakt |> 
               select(personalnummer,name,vorname,guid,fraktion),by = c("guid")) |> 
+  filter(guid %in% mitglieder_ogd_aktiv$guid) |> 
   select(-c(guid)) |> 
-  select(nr =personalnummer,name,vorname,fraktion,funktion,beschreibung,dauer)
+  select(nr =personalnummer,name,vorname,fraktion,kategorie=funktion,beschreibung) 
   
 saveRDS(intver,"data/intver.rds")
 write.table(intver, file = "data/intver.csv", quote = T, sep = ",", dec = ".",
