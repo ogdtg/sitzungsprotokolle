@@ -1,139 +1,114 @@
-# Parliament of the Canton Thurgau Protocol Crawler
+# Grosser Rat Kanton Thurgau – OGD Pipeline
 
-This GitHub repository contains a set of functions that crawl protocols from the Parliament of the Canton Thurgau in Switzerland and produce a CSV file for publishing as machine-readable open government data (OGD).
+Dieses Repository liest Daten des Grossen Rates des Kantons Thurgau über die
+offizielle **CMI/CDWS XML-API** von `parlament.tg.ch` aus, verknüpft sie mit den
+historischen Beständen und erzeugt daraus maschinenlesbare Datensätze (RDS + CSV)
+für die Veröffentlichung als Open Government Data (OGD) auf data.tg.ch.
 
-## Scheduled Crawl Run
-The `run_scrape.R` script will be executed regularly by using GitHub Actions. In the code, the steps below will be performed:
+> **Hinweis:** Die Pipeline wurde von einem reinen PDF-Scraper auf die XML-API
+> umgestellt. Zentrales Skript ist heute `work_with_xml_api.R`. Der frühere,
+> auf `run_scrape.R` / `extract_functions.R` basierende PDF-Ansatz wird nur noch
+> für die Extraktion der **Abstimmungen** aus den Traktanden-PDFs verwendet.
 
-1. The script begins by loading several R packages: `pdftools`, `dplyr`, `tidyr`, `rvest`, `stringr`, `httr`, and `jsonlite`. These packages provide functions and tools for working with PDFs, manipulating data frames, web scraping, and handling HTTP requests.
+## Automatisierter Lauf
 
-2. By calling `eval(parse("R/extract_functions.R", encoding="UTF-8"))` the necessary functions are loaded.
+Der Ablauf wird per GitHub Actions (`.github/workflows/check_availability.yml`)
+täglich ausgeführt (Cron `0 2 * * *`, ca. 03:00/04:00 Uhr Schweizer Zeit; zusätzlich
+manuell via `workflow_dispatch`). Der Job läuft im Container
+`florenz2/pdf_scrape:latest_` (enthält R, poppler/pdftools) und führt
+`Rscript work_with_xml_api.R` aus. Neu erzeugte Daten unter `data/` werden am Ende
+automatisch committet und gepusht.
 
-3. The code checks if two files exist: "vars/last_update.rds" (date of the last protocol scraped) and "vars/last_id.rds" (number of the las t protocol).  If the files exist, the code reads the stored values into the variables `last_update` and `last_id`, respectively. If the files don't exist, it sets `last_update` to a date of "1990-01-01".
+Benötigte Secrets (als Environment-Variablen gesetzt):
 
-4. The code calls the `get_current_data()` function, which scrapes the website of the (parliament)[https://parlament.tg.ch/sitzungen-protokolle/ausfuehrliche-protokolle.html/4483] and retrieves information about PDF links to the newest protocol and their corresponding dates. This function uses the `rvest` package to scrape the website's HTML and extract the relevant data.
+| Secret | Zweck |
+|--------|-------|
+| `USER_GR_API`, `PW_GR_API` | Basic-Auth für die XML-API von `parlament.tg.ch` |
+| `PUSHKEY` | Push-API-Key für data.tg.ch |
+| `PAT` | GitHub Token (u. a. für das Eröffnen von Issues) |
 
-5. The code compares the date of the retrieved PDF data with the `last_update` variable. If the date of the current data is greater than `last_update`, it proceeds to process the PDF data.
+## Datenquellen (XML-API)
 
-6. The code calls the `prepare_pdf_data()` function, which takes the PDF link from the current data and prepares the PDF data for further processing. This function downloads the PDF file, extracts the font information, and returns a data frame containing the PDF data with font information.
+Die API-Zugriffe sind in `R/xml_functions.R` gekapselt. Alle Endpunkte werden
+über `fetch_page()` seitenweise (je 1000 Treffer) abgefragt und über
+`numHits` vollständig paginiert:
 
-7. The code calls the `extract_speaker_text()` function, which extracts speaker text from the PDF data. This function processes the PDF data and identifies speaker text based on certain patterns and font styles. It returns a data frame containing the extracted speaker text.
+| Funktion | Endpunkt | Rückgabe |
+|----------|----------|----------|
+| `get_geschaeft()` | `/api/geschaeft/searchdetails/` | Liste: `geschaefte`, `erstunterzeichner`, `mitvorstoesser`, `kommission`, `zustaendigkeit`, `dokumente` |
+| `get_kontakt()` | `/api/kontakt/searchdetails/` | Liste: `kontakt`, `adresse`, `parteizugehoerigkeit`, `interessenbindung`, `behoerdenmandat` |
+| `get_behoerdenmandat()` | `/api/behoerdenmandat/searchdetails/` | Behördenmandate (Gremien, Funktion, Dauer) |
+| `get_sitzung()` | `/api/sitzung/searchdetails/` | Liste: `sitzung`, `dokumente` (inkl. Download-URLs) |
 
-8. The code calls the `prepare_text_data()` function, which takes the extracted speaker text, the PDF date, and other data from the current data, and prepares it for further analysis. This function performs various transformations on the data, such as assigning group IDs, extracting speaker types, cleaning up speaker names, and reformatting the data frame.
+## Ablauf von `work_with_xml_api.R`
 
-9. The code prepares the necessary parameters and headers for making an HTTP POST request to a specified the dataset on data.tg.ch via the PUSH API. It uses the `httr` package to send the POST request and includes the prepared text data in JSON format as the request body.
+1. **Pakete & Funktionen laden** – `R/load_packages.R`, `R/abstimmungen_functions.R`,
+   `R/xml_functions.R`.
+2. **Rohdaten abrufen** – Sitzungen, Behördenmandate, Geschäfte und Kontakte über
+   die XML-API.
+3. **Geschäfte** (`geschaeft_ogd`) – Geschäfte mit Zuständigkeit joinen, Spalten
+   umbenennen, Datums- und Zahlenfelder typisieren.
+4. **Mitglieder** (`mitglieder_ogd`) – aktive GR-Mitglieder (laufendes Mandat)
+   aus Kontakten + Behördenmandaten, angereichert um Privatadresse und Bild-URL.
+5. **Vorstösser** (`vorstoesser`) – Erst- und Mitunterzeichnende je Geschäft.
+6. **Dokumente** (`dokumente_ogd`) – Geschäfts- und Sitzungsdokumente mit Links;
+   GRGEKO-Links werden auf das Archivportal umgeschrieben.
+7. **Verknüpfung mit Historie** – die aktuellen Daten werden per `anti_join` +
+   `bind_rows` in die historischen Bestände (`data/*_full.rds`) integriert.
+8. **Speichern** – Ergebnisse als `.rds` **und** `.csv` (UTF-8) unter `data/`.
+9. **Abstimmungen** – aus den Traktanden-PDFs der Sitzungen extrahiert
+   (`get_abstimmungen()`), siehe unten.
+10. **Kommissionen** (`kom`) und **Interessenbindungen** (`intver`) – aus
+    Behördenmandaten bzw. Kontakten aufbereitet und gespeichert.
 
-10. The code saves the updated `last_id` and `last_update` values into files "vars/last_id.rds" and "vars/last_update.rds", respectively, using the `saveRDS()` function. These files will be used as the starting point for the next execution of the code.
+## Ausgabedateien (`data/`)
 
-11. If the date of the current data is not greater than `last_update`, meaning that there are no new protocls to scrape, the code sets the current time as the last run time and saves it into a file "vars/last_run.rds". It also displays a message indicating that there is no new data.
+| Datei (rds/csv) | Inhalt |
+|-----------------|--------|
+| `geschaefte` | Alle Geschäfte inkl. Historie |
+| `gr_mitglieder` | Aktive Mitglieder des Grossen Rates |
+| `vorstoesser` | Erst-/Mitunterzeichnende der Vorstösse |
+| `dokumente` | Dokumente zu Geschäften und Sitzungen (mit Links) |
+| `abstimmungen_ogd` | Aus PDFs extrahierte Abstimmungsergebnisse |
+| `kommission` | Kommissionsmitgliedschaften |
+| `intver` | Interessenbindungen der Mitglieder |
 
-
-## Functions
-
-### extract_tagesordnung
-
-This function extracts the Tagesordnung (agenda) from a PDF document specified by the `pdf_link` parameter.
-
-```R
-extract_tagesordnung <- function(pdf_link)
-```
-
-**Parameters:**
-- `pdf_link` (string): The URL or file path of the PDF document.
-
-**Returns:**
-- A dataframe containing the extracted Tagesordnung.
-
-### prepare_pdf_data
-
-This function prepares the PDF data with font information for further processing.
-
-```R
-prepare_pdf_data <- function(pdf_link)
-```
-
-**Parameters:**
-- `pdf_link` (string): The URL or file path of the PDF document.
-
-**Returns:**
-- A dataframe containing the PDF data with font information.
-
-### extract_sitzungsdaten
-
-This function extracts Sitzungsdaten (session data) from PDF data.
-
-```R
-extract_sitzungsdaten <- function(pdf_data)
-```
-
-**Parameters:**
-- `pdf_data` (dataframe): A dataframe containing the PDF data.
-
-**Returns:**
-- A dataframe containing the extracted Sitzungsdaten.
-
-### extract_speaker_text
-
-This function extracts speaker text from PDF data.
-
-```R
-extract_speaker_text <- function(pdf_data_text)
-```
-
-**Parameters:**
-- `pdf_data_text` (dataframe): A dataframe containing the PDF text data.
-
-**Returns:**
-- A dataframe containing the extracted speaker text.
-
-### get_current_data
-
-This function retrieves the current data (PDF links and dates) from the Parliament of the Canton Thurgau website.
-
-```R
-get_current_data <- function()
-```
-
-**Returns:**
-- A list containing the PDF links, PDF dates, Tagesordnung links, and Tagesordnung dates.
-
-
-### prepare_text_data
-
-This function prepares the extracted speaker text data for publishing.
-
-```R
-prepare_text_data <- function(pdf_df, date)
-```
-
-**Parameters:**
-- `pdf_df` (dataframe): A dataframe containing the extracted speaker text data.
-- `date` (Date): The date of the protocol.
-
-**Returns:**
-- A dataframe containing the prepared text data.
-
-
-# Funktionsweise (05.07.2024)
-
-## Mitglieder
-
-PDF Mitgliederliste wird gescraped und als Master verwendet. Ausserdem wird die Seite der Mitglieder gescraped, um die Partei zuspielen zu können. Gibt es für einen EIntrag in der Mitgliederliste keinen Eintrag auf der Seite, weil z.B. der Name falsch geschrieben ist, so wird ein Issue eröffent.
-
-Alle Einträge die je gescraped wurden, werden in `mitglieder_full.rds` gespeichert
-
-## Geschaefte
-
-Geschäfte werden aus der GRGEKO gescraped. Alle Vorstösser werden mit der aktuellen Mitgliederliste abgegelichen. Wenn es für einen Vorstösser keinen Treffer in der Mitgliederliste gibt, wird ein Issue eröffnet.
+`*_full`-Dateien halten den kumulierten Gesamtbestand; die `last_*`-Dateien in
+`vars/`/`data/` merken sich den Stand des letzten Laufs.
 
 ## Abstimmungen
 
-Abstimmungen werden aus den PDFs extrahiert. Verwendet werden alle PDFs die "Trakt" im Dateinamen haben. Alle Files werden überprüft, ob es sich dabei um Abstimmungsprotokolle handelt
+Die Abstimmungsergebnisse liegen nicht in der API, sondern in den
+Traktanden-PDFs (`file_name` enthält `Trakt.`). `get_abstimmungen()`
+(`R/abstimmungen_functions.R`) lädt diese PDFs, prüft ob es sich um
+Abstimmungsprotokolle handelt, extrahiert die Stimmen und gleicht die Namen mit
+der aktuellen Mitgliederliste ab. Ergebnis: `data/abstimmungen_ogd.{rds,csv}`
+sowie `data/last_abstimmung.rds`.
 
-### Mögliche Probleme
-- Manche Files können scheinbar nicht verarbeitet werden. Lokal funktioniert dies allerdings problemlos
+**Bekanntes Problem:** Einzelne PDFs lassen sich in der CI-Umgebung nicht
+verarbeiten, obwohl dies lokal problemlos funktioniert.
 
-## Sitzungsprotokolle (siehe oben)
+## Qualitätssicherung / Issues
 
-Sitzungsprotokolle werden nach dem oben beschriebenen Muster aufbereitet und via push API an data.tg.ch gesendet
+Findet sich für einen Vorstösser oder ein Mitglied kein Treffer beim Abgleich mit
+der Mitgliederliste (z. B. wegen abweichender Schreibweise), wird automatisch ein
+GitHub-Issue eröffnet (Token `PAT`).
 
+## Repository-Struktur
+
+```
+work_with_xml_api.R   # Hauptskript (XML-API-Pipeline)
+R/
+  load_packages.R          # Pakete laden/installieren
+  xml_functions.R          # Zugriff auf die CMI/CDWS XML-API
+  abstimmungen_functions.R # PDF-Extraktion der Abstimmungen
+  grgeko_functions.R       # GRGEKO-Hilfsfunktionen
+  mitglieder_functions.R   # Mitglieder-Aufbereitung
+  kommisions_functions.R   # Kommissionen
+  sitzungsprotokolle_functions.R
+  extract_functions.R      # Legacy: PDF-Scraping der Protokolle
+  general_functions.R, archive.R
+data/     # Ausgabedaten (rds + csv)
+vars/     # Statusdateien des letzten Laufs
+.github/workflows/check_availability.yml  # Scheduler
+```
