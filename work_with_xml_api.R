@@ -295,8 +295,8 @@ kom <- behoerdenmandat |>
   select(-c(kontakt_uid,gremium_uid,wahlkreis,partei)) |> 
   select(kommission_id = guid,start:gremiumstyp, nr =personalnummer,name,vorname,funktion:fraktion) |> 
   mutate(across(c(start,end),~as_date(ymd_hms(.x)))) |> 
-  mutate(end = case_when(end == as.Date("9999-12-31")~NA,
-                         .default = end))
+  mutate(end = case_when(end == as.Date("9999-12-31") ~ as.Date(NA),
+                         TRUE ~ end))
 
 saveRDS(kom,"data/kommission.rds")
 write.table(kom, file = "data/kommission.csv", quote = T, sep = ",", dec = ".",
