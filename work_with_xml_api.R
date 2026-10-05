@@ -289,7 +289,7 @@ get_abstimmungen(mitglieder_df=mitglieder_ogd, pdf_df = pdf_df_abst)
 
 # Kommissionen und Mitglieder
 kom <- behoerdenmandat |> 
-  filter(str_detect(gremium,"ommission")) |> 
+  filter(str_detect(gremiumstyp,"ommission")) |> 
   left_join(kontakt$kontakt |> 
               select(personalnummer,guid,fraktion),by = c("kontakt_uid"="guid")) |> 
   select(-c(kontakt_uid,gremium_uid,wahlkreis,partei)) |> 
@@ -301,6 +301,14 @@ kom <- behoerdenmandat |>
 saveRDS(kom,"data/kommission.rds")
 write.table(kom, file = "data/kommission.csv", quote = T, sep = ",", dec = ".",
             row.names = F, na="",fileEncoding = "utf-8")
+
+
+kom_new <- kom |> filter(is.na(end)|end>=as.Date("2020-05-20"))
+saveRDS(kom_new,"data/kommission_ab2020.rds")
+write.table(kom_new, file = "data/kommission2020.csv", quote = T, sep = ",", dec = ".",
+            row.names = F, na="",fileEncoding = "utf")
+# writexl::write_xlsx(kom_new,"local_data/kom_ab_mai2020.xlsx")
+# writexl::write_xlsx(kom,"local_data/kom.xlsx")
 
 # Interessenverbindung
 intver <- kontakt$interessenbindung |> 
@@ -314,6 +322,7 @@ saveRDS(intver,"data/intver.rds")
 write.table(intver, file = "data/intver.csv", quote = T, sep = ",", dec = ".",
             row.names = F, na="",fileEncoding = "utf-8")
 
+# writexl::write_xlsx(intver,"local_data/intver.xlsx")
 
   
 
