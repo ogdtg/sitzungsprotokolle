@@ -306,7 +306,7 @@ write.table(kom, file = "data/kommission.csv", quote = T, sep = ",", dec = ".",
 kom_new <- kom |> filter(is.na(end)|end>=as.Date("2020-05-20"))
 saveRDS(kom_new,"data/kommission_ab2020.rds")
 write.table(kom_new, file = "data/kommission2020.csv", quote = T, sep = ",", dec = ".",
-            row.names = F, na="",fileEncoding = "utf")
+            row.names = F, na="",fileEncoding = "utf-8")
 # writexl::write_xlsx(kom_new,"local_data/kom_ab_mai2020.xlsx")
 # writexl::write_xlsx(kom,"local_data/kom.xlsx")
 
