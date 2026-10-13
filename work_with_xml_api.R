@@ -2,6 +2,7 @@
 eval(parse("R/load_packages.R", encoding="UTF-8"))
 eval(parse("R/abstimmungen_functions.R", encoding="UTF-8"))
 eval(parse("R/xml_functions.R", encoding="UTF-8"))
+eval(parse("R/sitzungsprotokolle_functions.R", encoding="UTF-8"))
 packageVersion("pdftools")
 pdftools::poppler_config()
 
@@ -97,7 +98,20 @@ vorstoesser <- gescaeft$geschaefte |>
 #
 #
 sitzungsdokumente <- sitzung$dokumente |>
-  select(doc_title = file_name,doc_link=url,guid)
+  select(guid,dok_guid,doc_title = file_name,pdf=url,guid) |> 
+  left_join(sitzung$sitzung |> 
+              select(guid,datum),"guid")
+
+
+
+newest_in_voten <- GET("https://data.tg.ch/api/explore/v2.1/catalog/datasets/sk-stat-137/records?select=max(datum)%20as%20datum&limit=20") |> 
+  content()
+newest_date_voten <- newest_in_voten$results[[1]]$datum
+
+pdf_df <- sitzungsdokumente |> 
+  filter(doc_title=="Protokoll") |> 
+  mutate(datum = as.Date(datum, format = "%d.%m.%Y")) |> 
+  filter(datum>as.Date(substr(newest_date_voten, 1, 10)))
 
 
 dokumente_ogd <- gescaeft$dokumente |>
@@ -106,7 +120,7 @@ dokumente_ogd <- gescaeft$dokumente |>
               select(guid,geschaeftstitel=titel,geschaeftsnummer ),by = c("geschaeft_guid"="guid")) |>
   select(-geschaeft_guid)
 
-
+get_sitzungsprotokolle(pdf_df = pdf_df)
 # Alles aus Dokumenten kann über Sitzungen abgezogen werden, Metadaten über Sitzung
 # saveRDS(vorstoesser,"api_data/vorstoesser.rds")
 # saveRDS(mitglieder_ogd,"api_data/mitglieder.rds")

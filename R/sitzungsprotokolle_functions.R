@@ -94,8 +94,8 @@ extract_speaker_text <- function(pdf_data_text){
     )) %>%
     mutate(speaker = case_when(
       speaker & (lag_sep =="\n"| lag_lag_sep == "\n") & stringr::str_detect(text,"\\,") & str_detect(lead_font,"[B|b]old") ~ FALSE,
-      speaker & str_detect(text,",") & !(str_detect(lead(text),":") | str_detect(lead(lead(text)),":")) ~ FALSE, #Sonderfälle
-      speaker & str_detect(text,":") & (str_detect(text,"^[a-z]") | str_detect(text,"\\d")) ~ FALSE, #Sonderfälle
+      # speaker & str_detect(text,",") & !(str_detect(lead(text),":") | str_detect(lead(lead(text)),":")) ~ FALSE, #Sonderfälle
+      # speaker & str_detect(text,":") & (str_detect(text,"^[a-z]") | str_detect(text,"\\d")) ~ FALSE, #Sonderfälle
       speaker & (lag_sep==" " | lag(y)==y) & str_detect(lag_text,"^[a-z]") & !str_detect(lag(font_name),"[B|b]old")~ FALSE,
       speaker & str_detect(text,"^I+?:") & str_detect(lag_text,"Teil") ~ FALSE,
       speaker & str_detect(text,":")  & str_detect(lead_font,"[B|b]old") ~ FALSE,
@@ -209,8 +209,8 @@ extract_speaker_text <- function(pdf_data_text){
   
   all_speaker <- all_speaker %>%
     mutate(heading = case_when(
-      (x==79 | x==100) & str_detect(font_name,"[B|b]old") & !speaker & lag_sep =="\n" & sep == "\n" ~ TRUE,
-      (x==79 | x==100) & str_detect(font_name,"[B|b]old") & !speaker & lag_sep =="\n" & str_detect(lead_font,"[B|b]old") & !stringr::str_detect(text,"^\\d")~ TRUE,
+      (x==79 | x==100 |x==85) & str_detect(font_name,"[B|b]old") & !speaker & lag_sep =="\n" & sep == "\n" ~ TRUE,
+      (x==79 | x==100 | x==85) & str_detect(font_name,"[B|b]old") & !speaker & lag_sep =="\n" & str_detect(lead_font,"[B|b]old") & !stringr::str_detect(text,"^\\d")~ TRUE,
       TRUE~FALSE
     ))
   
@@ -239,7 +239,7 @@ extract_speaker_text <- function(pdf_data_text){
   
   all_speaker <- all_speaker %>%
     mutate(start_tagesordnung = case_when(
-      (x==79 | x==100) & str_detect(font_name,"[B|b]old") & lag_sep == "\n" & stringr::str_detect(text,"^(\\d+\\.\\d+|\\d+\\.)$") & !stringr::str_detect(lead(text),"Lesung")~ TRUE,
+      (x==79 | x==100| x==85) & str_detect(font_name,"[B|b]old") & lag_sep == "\n" & stringr::str_detect(text,"^(\\d+\\.\\d+|\\d+\\.)$") & !stringr::str_detect(lead(text),"Lesung")~ TRUE,
       TRUE ~ FALSE
     ))
   
@@ -669,7 +669,9 @@ prepare_pdf_data <- function(pdf_link){
   full_tago_data <- tago_data %>%
     bind_rows() %>%
     mutate(sep = ifelse(space," ","\n")) %>%
-    mutate(text_string = paste0(text,sep))
+    mutate(text_string = paste0(text,sep))  %>%
+    filter(!(x==85 & y ==120 & str_detect(text,"/")))
+    
   
   return(full_tago_data)
   
@@ -679,24 +681,18 @@ prepare_pdf_data <- function(pdf_link){
 
 
 get_sitzungsprotokolle <- function(pdf_df){
-  if (file.exists("vars/last_update.rds")){
-    last_update <- readRDS("vars/last_update.rds")
-    last_id <- readRDS("vars/last_id.rds")
-  } else {
-    last_update <- as.Date("1990-01-01")
-  }
 
+
+  last_id <- readRDS("vars/last_id.rds")
   
   
-  pdf_df_mod <- pdf_df %>% 
-    filter(text > last_update) %>% 
-    filter(str_detect(name,"[A|a]usf"))
+  pdf_df_mod <- pdf_df 
   
   if (nrow(pdf_df_mod)>0){
     
     for (i in  1:nrow(pdf_df_mod)){
       pdf_data_text <- prepare_pdf_data(pdf_link = pdf_df_mod$pdf[i])
-      datum <- pdf_df_mod$text[i]
+      datum <- pdf_df_mod$datum[i]
       
       pdf_df <- extract_speaker_text(pdf_data_text)
       pdf_df_final <- prepare_text_data(pdf_df, date = datum)
@@ -712,6 +708,7 @@ get_sitzungsprotokolle <- function(pdf_df){
       )
       
       pdf_df_final <- pdf_df_final %>%
+        filter(!sprecher%in%c("Protokoll","Beschlussfähigkeit"))  %>%
         mutate(gr_id = 1:nrow(.)) %>%
         mutate(rede_id = case_when(
           str_length(gr_id)==3 ~ paste0(part_id,"0",gr_id),
@@ -721,10 +718,16 @@ get_sitzungsprotokolle <- function(pdf_df){
         )) %>% 
         rename(geschaeftsnummer = "registraturnummer",
                fraktion = "partei") %>% 
-        mutate(partei = ifelse(is.na(fraktion),"",fraktion))
+        mutate(partei = ifelse(is.na(fraktion),"",fraktion)) |> 
+        filter(!is.na(datum))
       
       # Define the URL and parameters
       url <- "https://data.tg.ch/api/push/1.0/sk-stat-137/echtzeit/push/"
+    
+      if (nrow(pdf_df_final)==0){
+        message(paste0("No data for protokoll of ",pdf_df_mod$datum[i]," (",pdf_df_mod$pdf[i],")"))
+        next
+      }
       
       # Send the POST request
       response <- httr::POST(
