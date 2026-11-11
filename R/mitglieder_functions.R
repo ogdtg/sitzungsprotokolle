@@ -219,7 +219,7 @@ get_mitglieder <- function(file="mitglieder.pdf"){
   
   # Save
   write.table(mitglieder_mod, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="",fileEncoding = "utf-8")
+              row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
   write_parquet(mitglieder_mod,"parquet/mitglieder.parquet")
   
   
@@ -369,7 +369,7 @@ update_mitglieder <- function(){
     
     
     write.table(mitglieder_ogd_pre, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
-                row.names = F, na="",fileEncoding = "utf-8")
+                row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
     
     stop(paste0("Mitglieder Update schlug fehl:", cond,"\nSämtliche Daten werden auf den Ursprungswert zurückgesetzt."))
   })
