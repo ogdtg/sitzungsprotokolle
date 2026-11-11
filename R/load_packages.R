@@ -60,3 +60,16 @@ library(httr)
 
 
 
+
+# CSV-Export für HUWISE/OGD:
+# - Zeilenumbrüche/Tabs in Textfeldern durch Leerzeichen ersetzen
+# - Anführungszeichen RFC-4180-konform verdoppeln ("" statt \")
+write_ogd_csv <- function(df, file) {
+  df <- dplyr::mutate(df, dplyr::across(
+    dplyr::where(is.character),
+    ~ stringr::str_squish(stringr::str_replace_all(.x, "[\r\n\t]+", " "))
+  ))
+  write.table(df, file = file, quote = TRUE, sep = ",", dec = ".",
+              row.names = FALSE, na = "", qmethod = "double", fileEncoding = "utf-8")
+  invisible(df)
+}

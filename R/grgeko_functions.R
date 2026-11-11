@@ -350,12 +350,9 @@ prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
     mutate(geschaeftsnummer = str_remove(geschaeftsnummer,"^20(?=[0-9])"))
   
   
-  write.table(final_vorstoesser , file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
-  write.table(final_dokumente, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
-  write.table(final_vorstoesse, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+  write_ogd_csv(final_vorstoesser, "data/vorstoesser.csv")
+  write_ogd_csv(final_dokumente, "data/dokumente.csv")
+  write_ogd_csv(final_vorstoesse, "data/geschaefte.csv")
   
   write_parquet(final_vorstoesser,"parquet/vorstoesser.parquet")
   write_parquet(final_vorstoesse,"parquet/geschaefte.parquet")

@@ -218,8 +218,7 @@ get_mitglieder <- function(file="mitglieder.pdf"){
     
   
   # Save
-  write.table(mitglieder_mod, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+  write_ogd_csv(mitglieder_mod, "data/gr_mitglieder.csv")
   write_parquet(mitglieder_mod,"parquet/mitglieder.parquet")
   
   
@@ -368,8 +367,7 @@ update_mitglieder <- function(){
     saveRDS(mitglieder_changes_name_party_fraktion_full_pre,"data/mitglieder_changes_name_party_fraktion.rds")
     
     
-    write.table(mitglieder_ogd_pre, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".", 
-                row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+    write_ogd_csv(mitglieder_ogd_pre, "data/gr_mitglieder.csv")
     
     stop(paste0("Mitglieder Update schlug fehl:", cond,"\nSämtliche Daten werden auf den Ursprungswert zurückgesetzt."))
   })
