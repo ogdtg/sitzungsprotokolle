@@ -422,8 +422,7 @@ get_abstimmungen <- function(mitglieder_df,geschaefte_df = readRDS("data/geschae
 
     
     saveRDS(abstimmungen,"data/abstimmungen_ogd.rds")
-    write.table(abstimmungen, file = "data/abstimmungen_ogd.csv", quote = T, sep = ",", dec = ".", 
-                row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+    write_ogd_csv(abstimmungen, "data/abstimmungen_ogd.csv")
     
     write_parquet(abstimmungen,"parquet/abstimmungen.parquet")
     

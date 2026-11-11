@@ -149,15 +149,13 @@ geschaefte_full_mod <- geschaefte_full |>
 
 # Daten speichern
 saveRDS(geschaefte_full_mod,"data/geschaefte.rds")
-write.table(geschaefte_full_mod, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".",
-            row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+write_ogd_csv(geschaefte_full_mod, "data/geschaefte.csv")
 
 
 
 # Mitglieder
 saveRDS(mitglieder_ogd,"data/gr_mitglieder.rds")
-write.table(mitglieder_ogd, file = "data/gr_mitglieder.csv", quote = T, sep = ",", dec = ".",
-            row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+write_ogd_csv(mitglieder_ogd, "data/gr_mitglieder.csv")
 #
 # Vorstösser
 # Geschäfte
@@ -170,8 +168,7 @@ vorstoesser_full_mod <- vorstoesser_full |>
 #
 # Daten speichern
 saveRDS(vorstoesser_full_mod,"data/vorstoesser.rds")
-write.table(vorstoesser_full_mod, file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".",
-            row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+write_ogd_csv(vorstoesser_full_mod, "data/vorstoesser.csv")
 
 # Dokumente
 # Geschäfte
@@ -193,8 +190,7 @@ dokumente_full_mod <- dokumente_full |>
 
 # Daten speichern
 saveRDS(dokumente_full_mod,"data/dokumente.rds")
-write.table(dokumente_full_mod, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".",
-            row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+write_ogd_csv(dokumente_full_mod, "data/dokumente.csv")
 #
 #
 #
@@ -315,14 +311,12 @@ kom <- behoerdenmandat |>
 
 
 saveRDS(kom,"data/kommission.rds")
-write.table(kom, file = "data/kommission.csv", quote = T, sep = ",", dec = ".",
-            row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+write_ogd_csv(kom, "data/kommission.csv")
 
 
 kom_new <- kom |> filter(is.na(end)|end>=as.Date("2020-05-20"))
 saveRDS(kom_new,"data/kommission_ab2020.rds")
-write.table(kom_new, file = "data/kommission2020.csv", quote = T, sep = ",", dec = ".",
-            row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+write_ogd_csv(kom_new, "data/kommission2020.csv")
 # writexl::write_xlsx(kom_new,"local_data/kom_ab_mai2020.xlsx")
 # writexl::write_xlsx(kom,"local_data/kom.xlsx")
 
@@ -333,13 +327,10 @@ intver <- kontakt$interessenbindung |>
   filter(guid %in% mitglieder_ogd_aktiv$guid) |> 
   select(-c(guid)) |> 
   select(nr =personalnummer,name,vorname,fraktion,kategorie=funktion,beschreibung) |>
-  # Zeilenumbrüche/Tabs in Textfeldern entfernen (sonst Fehler beim Import in HUWISE)
-  mutate(across(where(is.character), ~ str_squish(str_replace_all(.x, "[\r\n\t]+", " ")))) |>
   mutate(stand=Sys.Date())
   
 saveRDS(intver,"data/intver.rds")
-write.table(intver, file = "data/intver.csv", quote = T, sep = ",", dec = ".",
-            row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
+write_ogd_csv(intver, "data/intver.csv")
 
 # writexl::write_xlsx(intver,"local_data/intver.xlsx")
 
