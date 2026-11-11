@@ -310,7 +310,9 @@ kom <- behoerdenmandat |>
   select(kommission_id = guid,start:gremiumstyp, nr =personalnummer,name,vorname,funktion:fraktion) |> 
   mutate(across(c(start,end),~as_date(ymd_hms(.x)))) |> 
   mutate(end = case_when(end == as.Date("9999-12-31") ~ as.Date(NA),
-                         TRUE ~ end))
+                         TRUE ~ end)) |> 
+  mutate(stand=Sys.Date())
+
 
 saveRDS(kom,"data/kommission.rds")
 write.table(kom, file = "data/kommission.csv", quote = T, sep = ",", dec = ".",
@@ -330,7 +332,8 @@ intver <- kontakt$interessenbindung |>
               select(personalnummer,name,vorname,guid,fraktion),by = c("guid")) |> 
   filter(guid %in% mitglieder_ogd_aktiv$guid) |> 
   select(-c(guid)) |> 
-  select(nr =personalnummer,name,vorname,fraktion,kategorie=funktion,beschreibung) 
+  select(nr =personalnummer,name,vorname,fraktion,kategorie=funktion,beschreibung) |> 
+  mutate(stand=Sys.Date())
   
 saveRDS(intver,"data/intver.rds")
 write.table(intver, file = "data/intver.csv", quote = T, sep = ",", dec = ".",
