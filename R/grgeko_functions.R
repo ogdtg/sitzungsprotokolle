@@ -351,11 +351,11 @@ prepare_ogd_vorstoesse <- function(data_list, mitglieder_df){
   
   
   write.table(final_vorstoesser , file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="",fileEncoding = "utf-8")
+              row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
   write.table(final_dokumente, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="",fileEncoding = "utf-8")
+              row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
   write.table(final_vorstoesse, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
-              row.names = F, na="",fileEncoding = "utf-8")
+              row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
   
   write_parquet(final_vorstoesser,"parquet/vorstoesser.parquet")
   write_parquet(final_vorstoesse,"parquet/geschaefte.parquet")
@@ -650,11 +650,11 @@ get_vorstossdaten <- function(current_legislatur,old_legislatur, mitglieder_df){
 #     
 #   }, error = function(cond){
 #     write.table(final_vorstoesser_pre , file = "data/vorstoesser.csv", quote = T, sep = ",", dec = ".", 
-#                 row.names = F, na="",fileEncoding = "utf-8")
+#                 row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
 #     write.table(final_dokumente_pre, file = "data/dokumente.csv", quote = T, sep = ",", dec = ".", 
-#                 row.names = F, na="",fileEncoding = "utf-8")
+#                 row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
 #     write.table(final_vorstoesse_pre, file = "data/geschaefte.csv", quote = T, sep = ",", dec = ".", 
-#                 row.names = F, na="",fileEncoding = "utf-8")
+#                 row.names = F, na="", qmethod = "double", fileEncoding = "utf-8")
 #     
 #     saveRDS(gnum_string_pre, "data/gh_issue_vorst_gnum_string.rds")
 #     saveRDS(issue_body_pre, "data/gh_issue_vorst_issue_body.rds")
