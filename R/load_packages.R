@@ -66,7 +66,7 @@ library(httr)
 # - Anführungszeichen RFC-4180-konform verdoppeln ("" statt \")
 write_ogd_csv <- function(df, file) {
   df <- dplyr::mutate(df, dplyr::across(
-    dplyr::where(is.character),
+    tidyselect::where(is.character),
     ~ stringr::str_squish(stringr::str_replace_all(.x, "[\r\n\t]+", " "))
   ))
   write.table(df, file = file, quote = TRUE, sep = ",", dec = ".",
